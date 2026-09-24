@@ -1,0 +1,124 @@
+.card-swipe {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 35, 64, 0.88);
+  z-index: 40;
+  padding: 24px;
+}
+
+.card-swipe__panel {
+  width: min(420px, 92vw);
+  background: #1c1f26;
+  border: 4px solid #444a57;
+  border-radius: 16px;
+  padding: 26px 28px;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.card-swipe__title {
+  font-family: var(--cq-font-display, 'Fredoka', sans-serif);
+  font-weight: 600;
+  font-size: 20px;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.card-swipe__subtitle {
+  font-family: var(--cq-font-body, 'Inter', sans-serif);
+  font-size: 13px;
+  color: #c8ccd6;
+  margin-bottom: 22px;
+  min-height: 34px;
+}
+
+.card-swipe__reader {
+  position: relative;
+  height: 64px;
+  background: #0f1116;
+  border-radius: 10px;
+  border: 2px solid #444a57;
+  margin-bottom: 14px;
+  touch-action: none;
+}
+
+.card-swipe__slot {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, #2c8f5c, #e7b750, #c1483c);
+  border-radius: 999px;
+  opacity: 0.35;
+}
+
+.card-swipe__card {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 40px;
+  border-radius: 6px;
+  background: var(--cq-gold, #e7b750);
+  border: 2px solid #7a5a1e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  cursor: grab;
+  touch-action: none;
+  box-shadow: 0 3px 0 #7a5a1e;
+  transition: left 0.25s ease;
+}
+
+.card-swipe__card--dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.card-swipe__led {
+  position: absolute;
+  right: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #555;
+  box-shadow: 0 0 0 2px #222;
+}
+.card-swipe__led[data-state='granted'] {
+  background: var(--cq-success, #3f9463);
+  box-shadow: 0 0 10px 2px var(--cq-success, #3f9463);
+}
+.card-swipe__led[data-state='denied'] {
+  background: var(--cq-fail, #c1483c);
+  animation: cq-led-blink 0.4s ease-in-out 2;
+}
+@keyframes cq-led-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.card-swipe__message {
+  font-family: var(--cq-font-display, 'Fredoka', sans-serif);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--cq-fail, #c1483c);
+  min-height: 20px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.card-swipe__message--visible { opacity: 1; }
+
+.card-swipe__attempts {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #8b92a3;
+  font-family: var(--cq-font-body, 'Inter', sans-serif);
+}

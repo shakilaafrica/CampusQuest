@@ -1,0 +1,179 @@
+/*
+ * OrientGame network UI. Every colour, font and radius is a custom property,
+ * so the game's own theme can override them on :root or on a parent element:
+ *   :root { --og-accent: #5b3fa0; --og-font: 'YourGameFont', sans-serif; }
+ * Class names are prefixed og- to avoid clashing with existing game styles.
+ */
+.og-net {
+  --og-ink: #1b2238;
+  --og-muted: #5d6478;
+  --og-surface: #ffffff;
+  --og-surface-alt: #f2f3f8;
+  --og-line: #d5d8e3;
+  --og-accent: #5b3fa0;        /* matches the purple used for completed levels */
+  --og-accent-ink: #ffffff;
+  --og-ok: #1e7a4c;
+  --og-danger: #b3261e;
+  --og-danger-bg: #fdecea;
+  --og-radius: 10px;
+  --og-font: inherit;
+
+  font-family: var(--og-font);
+  color: var(--og-ink);
+  box-sizing: border-box;
+}
+.og-net *, .og-net *::before, .og-net *::after { box-sizing: inherit; }
+
+.og-net__visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* ---------- Buttons ---------- */
+.og-btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  border-radius: var(--og-radius);
+  border: 1px solid var(--og-line);
+  background: var(--og-surface);
+  color: var(--og-ink);
+  cursor: pointer;
+}
+.og-btn:hover:not(:disabled) { border-color: var(--og-accent); }
+.og-btn:disabled { opacity: 0.6; cursor: progress; }
+.og-btn:focus-visible,
+.og-field__input:focus-visible,
+.og-auth__tab:focus-visible {
+  outline: 3px solid var(--og-accent);
+  outline-offset: 2px;
+}
+.og-btn--primary {
+  background: var(--og-accent);
+  border-color: var(--og-accent);
+  color: var(--og-accent-ink);
+  inline-size: 100%;
+  padding-block: 0.8rem;
+}
+.og-btn--primary:hover:not(:disabled) { filter: brightness(1.08); }
+.og-btn--quiet { border-color: transparent; background: transparent; color: var(--og-accent); }
+
+/* ---------- Auth panel ---------- */
+.og-auth {
+  inline-size: min(100%, 26rem);
+  background: var(--og-surface);
+  border: 1px solid var(--og-line);
+  border-radius: calc(var(--og-radius) * 1.6);
+  padding: 1.25rem;
+}
+.og-auth__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--og-surface-alt);
+  border-radius: var(--og-radius);
+  margin-block-end: 1.25rem;
+}
+.og-auth__tab {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.55rem;
+  border: 0;
+  border-radius: calc(var(--og-radius) - 3px);
+  background: transparent;
+  color: var(--og-muted);
+  cursor: pointer;
+}
+.og-auth__tab[aria-selected='true'] { background: var(--og-surface); color: var(--og-ink); }
+.og-auth__form { display: grid; gap: 1rem; }
+
+.og-field { display: grid; gap: 0.35rem; }
+.og-field__label { font-weight: 600; font-size: 0.95rem; }
+.og-field__hint { font-size: 0.85rem; color: var(--og-muted); }
+.og-field__row { display: flex; gap: 0.5rem; }
+.og-field__input {
+  font: inherit;
+  inline-size: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--og-line);
+  border-radius: var(--og-radius);
+  background: var(--og-surface);
+  color: var(--og-ink);
+}
+
+.og-rules { list-style: none; margin: -0.25rem 0 0; padding: 0; display: grid; gap: 0.2rem; font-size: 0.88rem; color: var(--og-muted); }
+.og-rules__item.is-met { color: var(--og-ok); }
+
+.og-alert {
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--og-radius);
+  background: var(--og-danger-bg);
+  color: var(--og-danger);
+  font-size: 0.95rem;
+}
+
+/* ---------- Save status ---------- */
+.og-save { margin: 0.5rem 0; font-size: 0.95rem; }
+.og-save--saving { color: var(--og-muted); }
+.og-save--saved { color: var(--og-ok); }
+.og-save--error { color: var(--og-danger); }
+
+/* ---------- Admin stats ---------- */
+.og-admin {
+  inline-size: min(100%, 44rem);
+  background: var(--og-surface);
+  border: 1px solid var(--og-line);
+  border-radius: calc(var(--og-radius) * 1.6);
+  padding: 1.25rem;
+  display: grid;
+  gap: 1rem;
+}
+.og-admin__header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.og-admin__title { margin: 0; font-size: 1.35rem; }
+.og-admin__subtitle { margin: 0.5rem 0 0; font-size: 1.05rem; }
+.og-admin__actions { display: flex; gap: 0.5rem; }
+
+/* The one prominent element: the live count */
+.og-admin__live { display: flex; align-items: baseline; gap: 0.6rem; font-size: 1.05rem; }
+.og-admin__live-count { font-size: 3rem; line-height: 1; color: var(--og-accent); font-variant-numeric: tabular-nums; }
+.og-admin__live-dot { inline-size: 0.6rem; block-size: 0.6rem; border-radius: 50%; background: var(--og-ok); align-self: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .og-admin__live-dot { animation: og-pulse 2s ease-in-out infinite; }
+}
+@keyframes og-pulse { 50% { opacity: 0.35; } }
+
+.og-admin__screens { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.og-admin__screens li {
+  display: flex; gap: 0.5rem;
+  padding: 0.3rem 0.65rem;
+  background: var(--og-surface-alt);
+  border-radius: 999px;
+  font-size: 0.9rem;
+}
+.og-admin__num { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.og-admin__totals {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem 1.25rem;
+}
+.og-admin__totals div { border-block-start: 1px solid var(--og-line); padding-block-start: 0.5rem; }
+.og-admin__totals dt { font-size: 0.85rem; color: var(--og-muted); }
+.og-admin__totals dd { margin: 0; font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.og-funnel { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.og-funnel__row { display: grid; grid-template-columns: 7.5rem 1fr 2.5rem; align-items: center; gap: 0.6rem; font-size: 0.9rem; }
+.og-funnel__bar { block-size: 0.7rem; min-inline-size: 2px; background: var(--og-accent); border-radius: 3px; opacity: 0.85; }
+.og-funnel__row .og-admin__num { text-align: end; }
+
+.og-admin__table-wrap { overflow-x: auto; }
+.og-admin__table { inline-size: 100%; border-collapse: collapse; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+.og-admin__table th, .og-admin__table td { padding: 0.5rem 0.6rem; text-align: end; border-block-end: 1px solid var(--og-line); white-space: nowrap; }
+.og-admin__table th:first-child { text-align: start; }
+.og-admin__table thead th { font-size: 0.82rem; color: var(--og-muted); font-weight: 600; }
+
+.og-admin__stamp { margin: 0; font-size: 0.82rem; color: var(--og-muted); }

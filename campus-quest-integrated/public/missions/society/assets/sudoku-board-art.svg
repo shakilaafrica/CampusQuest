@@ -1,0 +1,36 @@
+<svg width="1200" height="1200" viewBox="0 0 1200 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="boardGlow" x1="0" y1="0" x2="1200" y2="1200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5E8FF" stop-opacity="0.95"/>
+      <stop offset="0.5" stop-color="#D7B9FF" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#8A5ACB" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="100" y1="100" x2="1100" y2="1100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E9D7FF"/>
+      <stop offset="0.5" stop-color="#9C6AE3"/>
+      <stop offset="1" stop-color="#5C2C8D"/>
+    </linearGradient>
+  </defs>
+  <g>
+    <rect x="80" y="80" width="1040" height="1040" rx="90" fill="url(#boardGlow)" opacity="0.16"/>
+    <rect x="140" y="140" width="920" height="920" rx="54" fill="#FFF9FF" fill-opacity="0.12" stroke="url(#edge)" stroke-width="14"/>
+    <g stroke="#E9D7FF" stroke-opacity="0.8" stroke-width="10">
+      <line x1="140" y1="470" x2="1060" y2="470"/>
+      <line x1="140" y1="730" x2="1060" y2="730"/>
+      <line x1="470" y1="140" x2="470" y2="1060"/>
+      <line x1="730" y1="140" x2="730" y2="1060"/>
+    </g>
+    <g stroke="#C0A0EA" stroke-opacity="0.85" stroke-width="4">
+      <line x1="140" y1="140" x2="1060" y2="140"/>
+      <line x1="140" y1="1060" x2="1060" y2="1060"/>
+      <line x1="140" y1="140" x2="140" y2="1060"/>
+      <line x1="1060" y1="140" x2="1060" y2="1060"/>
+    </g>
+    <g fill="#F9E9B8" fill-opacity="0.35">
+      <circle cx="220" cy="220" r="18"/>
+      <circle cx="980" cy="220" r="18"/>
+      <circle cx="220" cy="980" r="18"/>
+      <circle cx="980" cy="980" r="18"/>
+    </g>
+  </g>
+</svg>
