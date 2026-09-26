@@ -1,0 +1,109 @@
+import { useRef, useState } from 'react';
+import type { PointerEvent } from 'react';
+import './CardSwipeMinigame.css';
+
+interface Props {
+  onSuccess: () => void;
+}
+
+type SwipeResult = 'too_fast' | 'too_slow' | 'incomplete' | null;
+
+// Tunables: the card must cross the whole reader, and the time it takes to
+// do so must land in this window — too quick and the reader can't scan it,
+// too slow and the session times out. This is the same "not too fast, not
+// too slow" swipe that Among Us's card reader uses.
+const MIN_DURATION_MS = 280;
+const MAX_DURATION_MS = 900;
+const COMPLETE_THRESHOLD = 92; // percent of the track the card must reach
+
+export function CardSwipeMinigame({ onSuccess }: Props) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const startTimeRef = useRef(0);
+  const [cardPos, setCardPos] = useState(0); // 0-100 across the reader
+  const [isDragging, setIsDragging] = useState(false);
+  const [result, setResult] = useState<SwipeResult>(null);
+  const [attempts, setAttempts] = useState(0);
+  const [success, setSuccess] = useState(false);
+
+  const percentFromClientX = (clientX: number) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    return Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+  };
+
+  const handlePointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (success || cardPos > 12) return; // only grab the card from its resting position
+    setIsDragging(true);
+    setResult(null);
+    startTimeRef.current = performance.now();
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    setCardPos(percentFromClientX(e.clientX));
+  };
+
+  const handlePointerUp = (e: PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+
+    const finalPos = percentFromClientX(e.clientX);
+    const duration = performance.now() - startTimeRef.current;
+    setAttempts((a) => a + 1);
+
+    if (finalPos < COMPLETE_THRESHOLD) {
+      setResult('incomplete');
+      window.setTimeout(() => setCardPos(0), 260);
+      return;
+    }
+    if (duration < MIN_DURATION_MS) {
+      setResult('too_fast');
+      window.setTimeout(() => setCardPos(0), 260);
+      return;
+    }
+    if (duration > MAX_DURATION_MS) {
+      setResult('too_slow');
+      window.setTimeout(() => setCardPos(0), 260);
+      return;
+    }
+
+    setResult(null);
+    setSuccess(true);
+    setCardPos(100);
+    window.setTimeout(onSuccess, 650);
+  };
+
+  return (
+    <div className="card-swipe">
+      <div className="card-swipe__panel">
+        <div className="card-swipe__title">Student Card Access</div>
+        <div className="card-swipe__subtitle">
+          {success ? 'Access granted!' : 'Click and drag your card through the reader — not too fast, not too slow.'}
+        </div>
+
+        <div className="card-swipe__reader" ref={trackRef}>
+          <div className="card-swipe__slot" />
+          <div
+            className={`card-swipe__card${isDragging ? ' card-swipe__card--dragging' : ''}`}
+            style={{ left: `${cardPos}%` }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+          >
+            🪪
+          </div>
+          <div className="card-swipe__led" data-state={success ? 'granted' : result ? 'denied' : 'idle'} />
+        </div>
+
+        <div className={`card-swipe__message${result ? ' card-swipe__message--visible' : ''}`}>
+          {result === 'too_fast' && 'TOO FAST — SWIPE AGAIN'}
+          {result === 'too_slow' && 'TOO SLOW — SWIPE AGAIN'}
+          {result === 'incomplete' && "DIDN'T REACH THE READER — SWIPE AGAIN"}
+        </div>
+
+        {attempts > 0 && !success && <div className="card-swipe__attempts">Attempts: {attempts}</div>}
+      </div>
+    </div>
+  );
+}
