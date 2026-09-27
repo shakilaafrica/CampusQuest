@@ -1,150 +1,368 @@
-import { useCallback, useState } from 'react';
-import { TopDownScene, type ScenePoi } from '../scenes/TopDownScene';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BackgroundScene, type InteractionZone, type SceneNpc } from '../scenes/BackgroundScene';
 import { DialogueBox, type DialogueLine } from '../components/DialogueBox';
 import { CardSwipeMinigame } from '../components/CardSwipeMinigame';
 import { WaitingRoomMinigame } from '../components/WaitingRoomMinigame';
+
+import steveBikoBg from '../assets/steve-biko-background.jfif';
+import gateBg from '../assets/ivan-toms-gate.jfif';
+import buildingBg from '../assets/ivan-toms-building.jfif';
+import receptionBg from '../assets/ivan-toms-reception.jfif';
+import minigameBg from '../assets/student-wellness-minigame-background.jfif';
+
+import playerUp from '../assets/player-up.png';
+import playerDown from '../assets/player-down.png';
+import playerLeft from '../assets/player-left.png';
+import playerRight from '../assets/player-right.png';
+
+import kirahSprite from '../assets/kirah.png';
+
 import './StudentWellnessServicesWanted.css';
 
-type Stage =
-  | 'intro'
-  | 'find_kirah'
-  | 'dialogue_kirah_request'
-  | 'navigate_gate'
-  | 'card_swipe'
-  | 'dialogue_gate_opened'
-  | 'navigate_building'
-  | 'building_interior'
-  | 'dialogue_receptionist'
-  | 'waiting_minigame'
-  | 'dialogue_fail'
-  | 'dialogue_kirah_thanks'
-  | 'complete';
+// -----------------------------------------------------------------------------
+// Scene state machine
+// -----------------------------------------------------------------------------
+type Scene =
+  | 'intro'       // mission card overlay
+  | 'steveBiko'   // find Kirah at Steve Biko — mandatory Kirah dialogue transitions to gate
+  | 'gate'        // Ivan Toms gate — access-control zone + optional Kirah chat
+  | 'cardSwipe'   // card swipe minigame overlay
+  | 'building'    // Ivan Toms building exterior — stairs zone + optional Kirah chat
+  | 'reception'   // Ivan Toms reception — desk zone + optional Kirah chat
+  | 'minigame'    // Waiting room minigame
+  | 'success'     // Post-minigame success scene with player + Kirah + thank-you dialogue
+  | 'complete';   // Completion card
 
-type Location = 'courtyard' | 'gate' | 'path' | 'clinic';
+// -----------------------------------------------------------------------------
+// Player sprites (kept inside student-wellness/assets for self-containment).
+// -----------------------------------------------------------------------------
+const PLAYER_SPRITES = {
+  up: playerUp,
+  down: playerDown,
+  left: playerLeft,
+  right: playerRight,
+};
 
-const COURTYARD_POIS: ScenePoi[] = [{ id: 'kirah', x: 55, y: 55, label: 'Talk to Kirah', emoji: '🧕' }];
-const GATE_POIS: ScenePoi[] = [{ id: 'gate', x: 55, y: 50, label: 'Swipe your card', emoji: '🚪' }];
-const PATH_POIS: ScenePoi[] = [{ id: 'building_entrance', x: 55, y: 35, label: 'Enter the building', emoji: '🏥' }];
-const CLINIC_POIS: ScenePoi[] = [{ id: 'receptionist', x: 76, y: 32, label: 'Talk to the receptionist', emoji: '🧑\u200d⚕️' }];
+// -----------------------------------------------------------------------------
+// Per-scene layout — spawn positions, movement bounds, environment zones, and
+// Kirah's position/zone. All coordinates are percentages of the scene.
+//
+// General principle for Kirah's placement: right-hand side of every scene,
+// clear of the environment interaction zones so the two prompts never fire
+// at the same time.
+// -----------------------------------------------------------------------------
 
-const KIRAH_REQUEST: DialogueLine[] = [
+// --- Steve Biko intro scene --------------------------------------------------
+// Player enters from the left, Kirah is standing to the right of centre in
+// front of the clinic. She IS the interaction target here.
+const STEVE_BIKO_SPAWN = { x: 18, y: 90 };
+const STEVE_BIKO_BOUNDS = { minX: 6, maxX: 94, minY: 66, maxY: 94 };
+const STEVE_BIKO_KIRAH: SceneNpc = {
+  id: 'kirah',
+  x: 62,
+  y: 85,
+  spriteUrl: kirahSprite,
+  heightPct: 22,
+  interactionLabel: 'Press E to talk to Kirah',
+  interactionRadius: 13,
+};
+
+// --- Gate --------------------------------------------------------------------
+const GATE_SPAWN = { x: 60, y: 88 };
+const GATE_BOUNDS = { minX: 6, maxX: 94, minY: 55, maxY: 94 };
+const GATE_ZONE: InteractionZone = {
+  id: 'accessControl',
+  x: 27,
+  y: 66,
+  radius: 12,
+  label: 'Press E to swipe your student card',
+};
+const GATE_KIRAH: SceneNpc = {
+  id: 'kirah',
+  x: 82,
+  y: 82,
+  spriteUrl: kirahSprite,
+  heightPct: 20,
+  interactionLabel: 'Press E to talk to Kirah',
+  interactionRadius: 11,
+};
+
+// --- Building exterior -------------------------------------------------------
+const BUILDING_SPAWN = { x: 62, y: 92 };
+const BUILDING_BOUNDS = { minX: 6, maxX: 94, minY: 55, maxY: 94 };
+const BUILDING_ZONE: InteractionZone = {
+  id: 'stairsApproach',
+  x: 35,
+  y: 82,
+  radius: 13,
+  label: 'Press E to enter Ivan Toms',
+};
+const BUILDING_KIRAH: SceneNpc = {
+  id: 'kirah',
+  x: 82,
+  y: 84,
+  spriteUrl: kirahSprite,
+  heightPct: 20,
+  interactionLabel: 'Press E to talk to Kirah',
+  interactionRadius: 11,
+};
+
+// --- Reception ---------------------------------------------------------------
+const RECEPTION_SPAWN = { x: 42, y: 88 };
+const RECEPTION_BOUNDS = { minX: 8, maxX: 92, minY: 55, maxY: 94 };
+const RECEPTION_ZONE: InteractionZone = {
+  id: 'receptionDesk',
+  x: 50,
+  y: 55,
+  radius: 12,
+  label: 'Press E to talk to the receptionist',
+};
+const RECEPTION_KIRAH: SceneNpc = {
+  id: 'kirah',
+  x: 82,
+  y: 82,
+  spriteUrl: kirahSprite,
+  heightPct: 20,
+  interactionLabel: 'Press E to talk to Kirah',
+  interactionRadius: 11,
+};
+
+// --- Success scene -----------------------------------------------------------
+// Both characters standing centred-left, doctor no longer visible.
+const SUCCESS_SPAWN = { x: 36, y: 88 };
+const SUCCESS_BOUNDS = { minX: 20, maxX: 80, minY: 60, maxY: 94 };
+const SUCCESS_KIRAH: SceneNpc = {
+  id: 'kirah',
+  x: 56,
+  y: 88,
+  spriteUrl: kirahSprite,
+  heightPct: 30,
+};
+
+// -----------------------------------------------------------------------------
+// Dialogue lines
+// -----------------------------------------------------------------------------
+const KIRAH_INTRO_LINES: DialogueLine[] = [
   {
     speaker: 'Kirah',
     portrait: '🧕',
-    text: 'Hey! I need to go to the SWS clinic at Ivan Toms — can you help me get there?',
+    text: "I'm not feeling well, and I was hoping you could help me get to the other Student Wellness Service clinic at Ivan Toms. The Steve Biko clinic is full.",
+  },
+  {
+    speaker: 'Kirah',
+    portrait: '🧕',
+    text: "Let's take the shuttle and head to the clinic. It's near Lower Campus.",
   },
 ];
 
-const GATE_SUCCESS_LINE: DialogueLine[] = [
-  { speaker: 'Access Control', portrait: '🔓', text: 'Access granted. The gate slides open.' },
+const KIRAH_GATE_HINT: DialogueLine[] = [
+  {
+    speaker: 'Kirah',
+    portrait: '🧕',
+    text: 'If you scan your student card at the access control system, we can enter through the gate.',
+  },
 ];
 
-const RECEPTIONIST_LINE: DialogueLine[] = [
+const KIRAH_BUILDING_HINT: DialogueLine[] = [
+  {
+    speaker: 'Kirah',
+    portrait: '🧕',
+    text: "Let's head up the stairs together to enter the clinic.",
+  },
+];
+
+const KIRAH_RECEPTION_HINT: DialogueLine[] = [
+  {
+    speaker: 'Kirah',
+    portrait: '🧕',
+    text: 'Could you ask the receptionist if I could see the doctor, please?',
+  },
+];
+
+const RECEPTIONIST_LINES: DialogueLine[] = [
   {
     speaker: 'Reception — Ivan Toms Clinic',
     portrait: '🧑\u200d⚕️',
-    text: "You can have a seat and wait — I'll call Kirah's name when the doctor is ready.",
+    text: 'Welcome to Student Wellness Services. Have a seat in the waiting room and the doctor will call Kirah\u2019s name shortly.',
+  },
+  {
+    speaker: 'Reception — Ivan Toms Clinic',
+    portrait: '🧑\u200d⚕️',
+    text: 'Only raise your hand when you hear HER name — the doctor won\u2019t appreciate it otherwise.',
   },
 ];
 
-const KIRAH_THANKS: DialogueLine[] = [
-  { speaker: 'Kirah', portrait: '🧕', text: 'Thank you so much for helping me get here!' },
+const RECEPTIONIST_WRONG_NAME_LINES: DialogueLine[] = [
+  {
+    speaker: 'Reception — Ivan Toms Clinic',
+    portrait: '🧑‍⚕️',
+    text: 'That appointment was not for Kirah - you will have to try again.',
+  },
 ];
 
-function locationForStage(stage: Stage): Location {
-  switch (stage) {
-    case 'find_kirah':
-    case 'dialogue_kirah_request':
-      return 'courtyard';
-    case 'navigate_gate':
-    case 'card_swipe':
-    case 'dialogue_gate_opened':
-      return 'gate';
-    case 'navigate_building':
-      return 'path';
-    case 'building_interior':
-    case 'dialogue_receptionist':
-    case 'waiting_minigame':
-    case 'dialogue_fail':
-    case 'dialogue_kirah_thanks':
-    default:
-      return 'clinic';
-  }
-}
+const DOCTOR_MISSED_TARGET_LINES: DialogueLine[] = [
+  {
+    speaker: 'Doctor',
+    portrait: '🩺',
+    text: "Well, that's all my patients for now. I'll see the rest of my patients when I return from my break.",
+  },
+];
 
-function objectiveFor(stage: Stage): string {
-  switch (stage) {
+const KIRAH_THANKS_LINES: DialogueLine[] = [
+  {
+    speaker: 'Kirah',
+    portrait: '🧕',
+    text: 'Thank you so much for helping me! You are a lifesaver.',
+  },
+];
+
+// -----------------------------------------------------------------------------
+// UI helpers
+// -----------------------------------------------------------------------------
+function objectiveFor(scene: Scene, dialogueOpen: boolean): string {
+  if (dialogueOpen) return 'Press E to continue the dialogue';
+  switch (scene) {
     case 'intro':
-      return 'Find Kirah on campus';
-    case 'find_kirah':
-      return 'Find Kirah — press E to talk';
-    case 'navigate_gate':
-      return 'Navigate to Lower Campus and reach the SWS gate';
-    case 'card_swipe':
-      return 'Swipe your student card to open the gate';
-    case 'navigate_building':
-      return 'Enter the Ivan Toms building';
-    case 'building_interior':
-      return 'Find the receptionist — press E to talk';
-    case 'waiting_minigame':
-      return "Raise your hand when the doctor calls Kirah's name";
+      return 'Meet Kirah at the Steve Biko clinic';
+    case 'steveBiko':
+      return 'Walk over to Kirah — press E to talk';
+    case 'gate':
+      return 'Swipe your card at the access-control machine';
+    case 'cardSwipe':
+      return 'Swipe your student card through the reader';
+    case 'building':
+      return 'Head up the stairs into Ivan Toms';
+    case 'reception':
+      return 'Talk to the receptionist at the counter';
+    case 'minigame':
+      return "Raise your hand only when the doctor calls Kirah's name";
+    case 'success':
+      return 'Kirah is checked in — hear her out';
     case 'complete':
       return 'Mission complete';
-    default:
-      return '';
   }
 }
 
+// -----------------------------------------------------------------------------
+// Props
+// -----------------------------------------------------------------------------
 interface Props {
   onMissionComplete: () => void;
   onExitToMap: () => void;
 }
 
+/**
+ * A pending modal dialogue that overlays the current scene. Movement and E-
+ * press on the underlying scene are gated while this is set.
+ */
+interface PendingDialogue {
+  /** Unique per open, used as the DialogueBox key so every dialogue starts at line 1. */
+  id: number;
+  lines: DialogueLine[];
+  onDone: () => void;
+}
+
 export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }: Props) {
-  const [stage, setStage] = useState<Stage>('intro');
-  const [failLine, setFailLine] = useState<DialogueLine[] | null>(null);
+  const [scene, setScene] = useState<Scene>('intro');
+  const [dialogue, setDialogue] = useState<PendingDialogue | null>(null);
   const [failCount, setFailCount] = useState(0);
 
-  const handleInteract = useCallback(
-    (id: string) => {
-      if (stage === 'find_kirah' && id === 'kirah') setStage('dialogue_kirah_request');
-      else if (stage === 'navigate_gate' && id === 'gate') setStage('card_swipe');
-      else if (stage === 'navigate_building' && id === 'building_entrance') setStage('building_interior');
-      else if (stage === 'building_interior' && id === 'receptionist') setStage('dialogue_receptionist');
-    },
-    [stage],
-  );
+  // Memoised layout arrays so BackgroundScene's RAF loop has stable references.
+  const gateZones = useMemo(() => [GATE_ZONE], []);
+  const gateNpcs = useMemo(() => [GATE_KIRAH], []);
+  const buildingZones = useMemo(() => [BUILDING_ZONE], []);
+  const buildingNpcs = useMemo(() => [BUILDING_KIRAH], []);
+  const receptionZones = useMemo(() => [RECEPTION_ZONE], []);
+  const receptionNpcs = useMemo(() => [RECEPTION_KIRAH], []);
+  const steveBikoNpcs = useMemo(() => [STEVE_BIKO_KIRAH], []);
+  const successNpcs = useMemo(() => [SUCCESS_KIRAH], []);
 
-  const handleWaitingFailWrongName = (calledName: string) => {
+  const dialogueIdRef = useRef(0);
+  const openDialogue = useCallback((lines: DialogueLine[], onDone: () => void) => {
+    dialogueIdRef.current += 1;
+    setDialogue({ id: dialogueIdRef.current, lines, onDone });
+  }, []);
+
+  const closeDialogue = useCallback(() => setDialogue(null), []);
+
+  // --- Scene-specific interaction routers -----------------------------------
+  const handleSteveBikoInteract = useCallback((id: string) => {
+    if (id === 'kirah') {
+      openDialogue(KIRAH_INTRO_LINES, () => {
+        closeDialogue();
+        setScene('gate');
+      });
+    }
+  }, [openDialogue, closeDialogue]);
+
+  const handleGateInteract = useCallback((id: string) => {
+    if (id === GATE_ZONE.id) {
+      setScene('cardSwipe');
+    } else if (id === 'kirah') {
+      openDialogue(KIRAH_GATE_HINT, closeDialogue);
+    }
+  }, [openDialogue, closeDialogue]);
+
+  const handleBuildingInteract = useCallback((id: string) => {
+    if (id === BUILDING_ZONE.id) {
+      setScene('reception');
+    } else if (id === 'kirah') {
+      openDialogue(KIRAH_BUILDING_HINT, closeDialogue);
+    }
+  }, [openDialogue, closeDialogue]);
+
+  const handleReceptionInteract = useCallback((id: string) => {
+    if (id === RECEPTION_ZONE.id) {
+      openDialogue(RECEPTIONIST_LINES, () => {
+        closeDialogue();
+        setScene('minigame');
+      });
+    } else if (id === 'kirah') {
+      openDialogue(KIRAH_RECEPTION_HINT, closeDialogue);
+    }
+  }, [openDialogue, closeDialogue]);
+
+  const handleCardSwipeSuccess = useCallback(() => setScene('building'), []);
+
+  // --- Minigame outcomes ----------------------------------------------------
+  const handleMinigameWin = useCallback(() => setScene('success'), []);
+
+  const handleFailWrongName = useCallback(() => {
+    // Wrong patient: leave the waiting room immediately. Switching scene
+    // unmounts the minigame, which clears all of its timers, so no further
+    // names can be called behind the receptionist's dialogue. The player then
+    // has to talk to the receptionist again to start a fresh attempt.
     setFailCount((c) => c + 1);
-    setFailLine([
-      { speaker: 'Doctor', portrait: '🩺', text: `You're not ${calledName} — you need to wait your turn.` },
-    ]);
-    setStage('dialogue_fail');
-  };
+    setScene('reception');
+    openDialogue(RECEPTIONIST_WRONG_NAME_LINES, closeDialogue);
+  }, [openDialogue, closeDialogue]);
 
-  const handleWaitingFailMissedTarget = () => {
-    setFailCount((c) => c + 1);
-    setFailLine([{ speaker: 'Doctor', portrait: '🩺', text: 'Since Kirah is not here, I am going on break.' }]);
-    setStage('dialogue_fail');
-  };
+  const handleFailMissedTarget = useCallback(() => {
+    // Missed Kirah: the doctor's line plays over the (already resolved, idle)
+    // waiting room first. Only once it is dismissed do we return to reception.
+    openDialogue(DOCTOR_MISSED_TARGET_LINES, () => {
+      closeDialogue();
+      setFailCount((c) => c + 1);
+      setScene('reception');
+    });
+  }, [openDialogue, closeDialogue]);
 
-  const handleThanksDone = () => {
-    onMissionComplete();
-    setStage('complete');
-  };
+  // --- Success scene: auto-trigger Kirah's thank-you after a short beat ----
+  useEffect(() => {
+    if (scene !== 'success') return;
+    const t = window.setTimeout(() => {
+      openDialogue(KIRAH_THANKS_LINES, () => {
+        closeDialogue();
+        onMissionComplete();
+        setScene('complete');
+      });
+    }, 700);
+    return () => window.clearTimeout(t);
+  }, [scene, openDialogue, closeDialogue, onMissionComplete]);
 
-  const location = locationForStage(stage);
-  const sceneVisible = stage !== 'intro' && stage !== 'complete';
-  const interactionEnabled =
-    stage === 'find_kirah' || stage === 'navigate_gate' || stage === 'navigate_building' || stage === 'building_interior';
-  const highlight =
-    stage === 'find_kirah' ? 'kirah'
-    : stage === 'navigate_gate' ? 'gate'
-    : stage === 'navigate_building' ? 'building_entrance'
-    : stage === 'building_interior' ? 'receptionist'
-    : null;
+  const dialogueOpen = dialogue !== null;
 
+  // --------------------------------------------------------------------------
   return (
     <div className="sws-mission">
       <header className="sws-mission__hud">
@@ -152,104 +370,119 @@ export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }
           <span className="sws-mission__eyebrow">Mission 2 of 4</span>
           Student Wellness Services Wanted
         </div>
-        <div className="sws-mission__objective">{objectiveFor(stage)}</div>
+        <div className="sws-mission__objective">{objectiveFor(scene, dialogueOpen)}</div>
       </header>
 
-      {stage === 'intro' && <IntroCard onStart={() => setStage('find_kirah')} />}
+      <div className="sws-mission__stage">
+        {scene === 'intro' && <IntroCard onStart={() => setScene('steveBiko')} />}
 
-      {sceneVisible && (
-        <>
-          {location === 'courtyard' && (
-            <TopDownScene
-              pois={COURTYARD_POIS}
-              onInteract={handleInteract}
-              interactionEnabled={interactionEnabled}
-              highlight={highlight}
-              signLabel="Upper Campus Courtyard"
-              variant="outdoor"
-              spawn={{ x: 10, y: 65 }}
+        {scene === 'steveBiko' && (
+          <BackgroundScene
+            backgroundSrc={steveBikoBg}
+            playerSprites={PLAYER_SPRITES}
+            spawn={STEVE_BIKO_SPAWN}
+            bounds={STEVE_BIKO_BOUNDS}
+            npcs={steveBikoNpcs}
+            interactionEnabled={!dialogueOpen}
+            onInteract={handleSteveBikoInteract}
+          />
+        )}
+
+        {scene === 'gate' && (
+          <BackgroundScene
+            backgroundSrc={gateBg}
+            playerSprites={PLAYER_SPRITES}
+            spawn={GATE_SPAWN}
+            bounds={GATE_BOUNDS}
+            zones={gateZones}
+            npcs={gateNpcs}
+            interactionEnabled={!dialogueOpen}
+            onInteract={handleGateInteract}
+          />
+        )}
+
+        {scene === 'cardSwipe' && (
+          <>
+            {/* Keep the gate scene visible beneath the swipe overlay so the
+                transition doesn't cut to a plain colour. Both movement and E
+                are frozen because interactionEnabled is false. */}
+            <BackgroundScene
+              backgroundSrc={gateBg}
+              playerSprites={PLAYER_SPRITES}
+              spawn={{ x: GATE_ZONE.x + 4, y: GATE_ZONE.y + 8 }}
+              bounds={GATE_BOUNDS}
+              npcs={gateNpcs}
+              interactionEnabled={false}
+              onInteract={() => {}}
             />
-          )}
-          {location === 'gate' && (
-            <TopDownScene
-              pois={GATE_POIS}
-              onInteract={handleInteract}
-              interactionEnabled={interactionEnabled}
-              highlight={highlight}
-              signLabel="Lower Campus — SWS Access Gate"
-              variant="gate"
-              spawn={{ x: 10, y: 65 }}
-              decorations={<GateGraphic open={stage === 'dialogue_gate_opened'} />}
-            />
-          )}
-          {location === 'path' && (
-            <TopDownScene
-              pois={PATH_POIS}
-              onInteract={handleInteract}
-              interactionEnabled={interactionEnabled}
-              highlight={highlight}
-              signLabel="Ivan Toms Building — SWS Clinic"
-              variant="outdoor"
-              spawn={{ x: 55, y: 85 }}
-            />
-          )}
-          {location === 'clinic' && (
-            <TopDownScene
-              pois={CLINIC_POIS}
-              onInteract={handleInteract}
-              interactionEnabled={interactionEnabled}
-              highlight={highlight}
-              signLabel="SWS Clinic — Waiting Room"
-              variant="clinic"
-              spawn={{ x: 15, y: 70 }}
-            />
-          )}
-        </>
-      )}
+            <CardSwipeMinigame onSuccess={handleCardSwipeSuccess} />
+          </>
+        )}
 
-      {stage === 'dialogue_kirah_request' && (
-        <DialogueBox lines={KIRAH_REQUEST} onComplete={() => setStage('navigate_gate')} />
-      )}
+        {scene === 'building' && (
+          <BackgroundScene
+            backgroundSrc={buildingBg}
+            playerSprites={PLAYER_SPRITES}
+            spawn={BUILDING_SPAWN}
+            bounds={BUILDING_BOUNDS}
+            zones={buildingZones}
+            npcs={buildingNpcs}
+            interactionEnabled={!dialogueOpen}
+            onInteract={handleBuildingInteract}
+          />
+        )}
 
-      {stage === 'card_swipe' && <CardSwipeMinigame onSuccess={() => setStage('dialogue_gate_opened')} />}
+        {scene === 'reception' && (
+          <BackgroundScene
+            backgroundSrc={receptionBg}
+            playerSprites={PLAYER_SPRITES}
+            spawn={RECEPTION_SPAWN}
+            bounds={RECEPTION_BOUNDS}
+            zones={receptionZones}
+            npcs={receptionNpcs}
+            interactionEnabled={!dialogueOpen}
+            onInteract={handleReceptionInteract}
+          />
+        )}
 
-      {stage === 'dialogue_gate_opened' && (
-        <DialogueBox lines={GATE_SUCCESS_LINE} onComplete={() => setStage('navigate_building')} />
-      )}
+        {scene === 'minigame' && (
+          <WaitingRoomMinigame
+            key={failCount}
+            targetName="Kirah"
+            onWin={handleMinigameWin}
+            onFailWrongName={handleFailWrongName}
+            onFailMissedTarget={handleFailMissedTarget}
+          />
+        )}
 
-      {stage === 'dialogue_receptionist' && (
-        <DialogueBox lines={RECEPTIONIST_LINE} onComplete={() => setStage('waiting_minigame')} />
-      )}
+        {scene === 'success' && (
+          <BackgroundScene
+            backgroundSrc={minigameBg}
+            playerSprites={PLAYER_SPRITES}
+            spawn={SUCCESS_SPAWN}
+            bounds={SUCCESS_BOUNDS}
+            npcs={successNpcs}
+            interactionEnabled={false}
+            onInteract={() => {}}
+            hidePlayer
+          />
+        )}
 
-      {stage === 'waiting_minigame' && (
-        <WaitingRoomMinigame
-          targetName="Kirah"
-          onWin={() => setStage('dialogue_kirah_thanks')}
-          onFailWrongName={handleWaitingFailWrongName}
-          onFailMissedTarget={handleWaitingFailMissedTarget}
-        />
-      )}
+        {scene === 'complete' && (
+          <CompleteCard failCount={failCount} onContinue={onExitToMap} />
+        )}
 
-      {stage === 'dialogue_fail' && failLine && (
-        <DialogueBox lines={failLine} onComplete={() => setStage('building_interior')} />
-      )}
-
-      {stage === 'dialogue_kirah_thanks' && <DialogueBox lines={KIRAH_THANKS} onComplete={handleThanksDone} />}
-
-      {stage === 'complete' && <CompleteCard failCount={failCount} onContinue={onExitToMap} />}
+        {dialogue && (
+          <DialogueBox key={dialogue.id} lines={dialogue.lines} onComplete={dialogue.onDone} />
+        )}
+      </div>
     </div>
   );
 }
 
-function GateGraphic({ open }: { open: boolean }) {
-  return (
-    <div className="gate-graphic" data-open={open} style={{ left: '55%', top: '50%' }}>
-      <div className="gate-graphic__panel gate-graphic__panel--left" />
-      <div className="gate-graphic__panel gate-graphic__panel--right" />
-    </div>
-  );
-}
-
+// -----------------------------------------------------------------------------
+// Sub-components
+// -----------------------------------------------------------------------------
 function IntroCard({ onStart }: { onStart: () => void }) {
   return (
     <div className="sws-mission__overlay">
@@ -257,17 +490,18 @@ function IntroCard({ onStart }: { onStart: () => void }) {
         <div className="sws-mission__panel-eyebrow">Mission 2 of 4</div>
         <h2>Student Wellness Services Wanted</h2>
         <p>
-          Kirah needs to get to the SWS clinic at Ivan Toms. Find her, escort her through the Lower
-          Campus access gate, and help her check in with the receptionist.
+          Kirah isn&rsquo;t well and the Steve Biko clinic is full. Find her outside
+          Steve Biko, take the shuttle down to Ivan Toms, and see her through to the
+          doctor.
         </p>
         <ul className="sws-mission__controls">
           <li><span>WASD / Arrows</span>Move</li>
           <li><span>E</span>Interact / advance dialogue</li>
           <li><span>Click + drag</span>Swipe your card through the reader</li>
-          <li><span>Click</span>Raise your hand when Kirah's name is called</li>
+          <li><span>Click</span>Raise your hand when Kirah&rsquo;s name is called</li>
         </ul>
-        <button className="sws-mission__btn" onClick={onStart}>
-          Find Kirah
+        <button type="button" className="sws-mission__btn" onClick={onStart}>
+          Find Kirah at Steve Biko
         </button>
       </div>
     </div>
@@ -282,10 +516,10 @@ function CompleteCard({ failCount, onContinue }: { failCount: number; onContinue
         <h2>🩺 Kirah is checked in</h2>
         <p>
           {failCount > 0
-            ? `Took a couple of tries in the waiting room, but Kirah's all set.`
-            : 'Smooth run — Kirah is checked in and waiting for the doctor.'}
+            ? 'Took a couple of tries in the waiting room, but Kirah is with the doctor.'
+            : 'Smooth run — Kirah was called and you were right there. She\u2019s with the doctor now.'}
         </p>
-        <button className="sws-mission__btn" onClick={onContinue}>
+        <button type="button" className="sws-mission__btn" onClick={onContinue}>
           Return to the map
         </button>
       </div>

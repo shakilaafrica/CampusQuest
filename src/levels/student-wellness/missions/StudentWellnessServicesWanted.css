@@ -6,6 +6,7 @@
   display: flex;
   flex-direction: column;
   font-family: var(--cq-font-body, 'Inter', sans-serif);
+  background: var(--cq-navy, #0c2340);
 }
 
 .sws-mission__hud {
@@ -17,6 +18,7 @@
   background: var(--cq-navy, #0c2340);
   color: var(--cq-cream, #f6f2e7);
   z-index: 15;
+  flex: none;
 }
 
 .sws-mission__title {
@@ -38,18 +40,36 @@
   font-size: 13px;
   opacity: 0.85;
   text-align: right;
-  max-width: 320px;
+  max-width: 340px;
 }
 
-.sws-mission > .tds { flex: 1; }
-
-.sws-mission__overlay {
+/* Stage container holds whichever scene is currently active; scenes fill it. */
+.sws-mission__stage {
+  position: relative;
   flex: 1;
+  width: 100%;
+  overflow: hidden;
+  background: #000;
+}
+
+/* Dialogue must sit above the full-stage minigame overlays (z-index 40), e.g.
+   the doctor's line when Kirah is missed, but below intro/complete cards (50).
+   Scoped to this mission because `.dialogue-box` is also defined globally by
+   the student-card level, whose later-loaded rule would otherwise win. */
+.sws-mission__stage .dialogue-box {
+  z-index: 45;
+}
+
+/* Intro / completion overlays ------------------------------------------------ */
+.sws-mission__overlay {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--cq-navy, #0c2340);
   padding: 24px;
+  z-index: 50;
 }
 
 .sws-mission__panel {
@@ -126,23 +146,10 @@
 
 .sws-mission__panel--complete h2 { color: #2f7a4d; }
 
-/* --- gate graphic decoration --- */
-.gate-graphic {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  width: 140px;
-  height: 90px;
-  display: flex;
-  z-index: 3;
-  pointer-events: none;
+@media (max-width: 640px) {
+  .sws-mission__hud { padding: 10px 14px; }
+  .sws-mission__title { font-size: 15px; }
+  .sws-mission__objective { font-size: 11px; max-width: 180px; }
+  .sws-mission__panel { padding: 22px 22px; }
+  .sws-mission__panel h2 { font-size: 22px; }
 }
-.gate-graphic__panel {
-  flex: 1;
-  background: repeating-linear-gradient(0deg, #6b7280 0px, #6b7280 6px, #4b5563 6px, #4b5563 12px);
-  border: 3px solid var(--cq-gold, #e7b750);
-  transition: transform 0.6s ease;
-}
-.gate-graphic__panel--left { border-right: none; transform-origin: left center; }
-.gate-graphic__panel--right { border-left: none; transform-origin: right center; }
-.gate-graphic[data-open='true'] .gate-graphic__panel--left { transform: rotateY(80deg); }
-.gate-graphic[data-open='true'] .gate-graphic__panel--right { transform: rotateY(-80deg); }
