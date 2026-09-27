@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 /* =========================================================
    SOCIETY FAIR — SCOPED STYLES
    Every rule is scoped under .society-fair so this CSS can
@@ -690,50 +692,228 @@
 
 /* ---------- developers: retro runner ---------- */
 
+.society-fair .developer-game {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  font-family: 'Press Start 2P', monospace;
+  background: #0f0f1e;
+  color: #e0e0ff;
+  border-radius: 10px;
+}
+
+.society-fair .developer-game__hud {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 8px 6px 0;
+}
+
+.society-fair .developer-game__stat {
+  background: rgba(11, 13, 25, 0.9);
+  border: 3px solid #00ffff;
+  border-radius: 6px;
+  padding: 6px 4px;
+  text-align: center;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.25);
+}
+
+.society-fair .developer-game__stat span {
+  display: block;
+  font-size: 7px;
+  color: #7feeff;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.society-fair .developer-game__stat strong {
+  display: block;
+  font-size: 9px;
+  color: #ffff00;
+  text-shadow: 0 0 8px rgba(255, 255, 0, 0.7);
+}
+
 .society-fair .runner {
-  height: auto;
-  flex: 1;
-  min-height: 130px;
-  max-height: 190px;
-  background: #16121d;
-  color: #e8d9f7;
   position: relative;
+  flex: 1;
+  min-height: 170px;
+  max-height: 210px;
+  background:
+    linear-gradient(to bottom, rgba(23, 19, 41, 0.94), rgba(10, 9, 17, 0.98)),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.08) 2px,
+      transparent 2px,
+      transparent 4px
+    );
+  color: #e8d9f7;
   overflow: hidden;
-  border: 3px solid #8150a8;
-  border-radius: 8px;
-  margin: 7px 0;
+  border: 4px solid #00ffff;
+  border-radius: 10px;
+  box-shadow: inset 0 0 18px rgba(0, 255, 255, 0.2), 0 0 18px rgba(255, 0, 255, 0.2);
   image-rendering: pixelated;
 }
 
-.society-fair .runner .ground {
+.society-fair .runner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.05) 2px,
+    transparent 2px,
+    transparent 5px
+  );
+  pointer-events: none;
+}
+
+.society-fair .runner__screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 6;
+}
+
+.society-fair .runner__screen h1 {
+  font-size: 18px;
+  color: #00ffff;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+  margin: 0 0 14px;
+  letter-spacing: 0.1em;
+}
+
+.society-fair .runner__screen p {
+  margin: 0;
+  color: #ffff00;
+  font-size: 9px;
+  text-shadow: 0 0 8px rgba(255, 255, 0, 0.7);
+  animation: sf-blink 0.85s steps(2, start) infinite;
+}
+
+@keyframes sf-blink {
+  50% { opacity: 0.35; }
+}
+
+.society-fair .runner__ground {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 13px;
-  border-top: 3px dashed #a874cf;
-}
-
-.society-fair .runner .bot,
-.society-fair .runner .obstacle {
-  position: absolute;
-  font-size: 24px;
-}
-
-.society-fair .runner .bot {
-  left: 28px;
-}
-
-.society-fair .runner .obstacle {
   bottom: 14px;
+  height: 3px;
+  background: #ff00ff;
+  box-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
 }
 
-.society-fair .runner .score {
+.society-fair .runner__bot,
+.society-fair .runner__obstacle {
   position: absolute;
-  right: 8px;
-  top: 7px;
-  font-family: monospace;
-  font-size: 14px;
-  color: #dcb8ff;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  line-height: 1;
+  image-rendering: pixelated;
+}
+
+.society-fair .runner__bot {
+  left: 18%;
+  transform: translateX(-50%);
+  color: #00ffff;
+  text-shadow: 0 0 12px rgba(0, 255, 255, 0.8);
+  bottom: 18px;
+}
+
+.society-fair .runner__obstacle {
+  bottom: 18px;
+  color: #ff3355;
+  text-shadow: 0 0 12px rgba(255, 51, 85, 0.8);
+}
+
+.society-fair .runner__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: rgba(15, 15, 30, 0.72);
+}
+
+.society-fair .runner__overlay h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+
+.society-fair .runner__overlay p {
+  margin: 0;
+  font-size: 9px;
+}
+
+.society-fair .runner__overlay--win h2 {
+  color: #00ffff;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.9);
+}
+
+.society-fair .runner__overlay--lose h2 {
+  color: #ff3355;
+  text-shadow: 0 0 10px rgba(255, 51, 85, 0.9);
+}
+
+.society-fair .runner__controls {
+  font-size: 8px;
+  color: #d0d7ff;
+  letter-spacing: 0.08em;
+  text-align: center;
+  padding: 2px 0 4px;
+  opacity: 0.9;
+}
+
+.society-fair .phoneAction {
+  width: 100%;
+  border: 3px solid #00ffff;
+  background: #00ffff;
+  color: #0f0f1e;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
+}
+
+.society-fair .phoneTop {
+  color: #7feeff;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+  padding-top: 8px;
+}
+
+.society-fair .phoneHint {
+  font-size: 8px;
+  color: #c9d4ff;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.society-fair .phoneFact {
+  margin-top: 8px;
+  font-size: 10px;
+  color: #dfe5ff;
+}
+
+.society-fair .runner__screen--ready {
+  background: rgba(8, 12, 24, 0.18);
 }
 
 /* ---------- confetti ---------- */
@@ -781,3 +961,63 @@
     width: min(190px, 70vw);
   }
 }
+
+/* ---------- StatsGeeks: Poison Beans ---------- */
+.society-fair .poisonBeans { display:flex; flex-direction:column; gap:10px; height:100%; }
+.society-fair .poisonBeans__subtitle { color:#b9a8c8; font-size:10px!important; }
+.society-fair .poisonBeans__rules { text-align:left; background:#ffffff0d; border:1px solid #9d69cc55; border-radius:14px; padding:12px; font-size:10px; line-height:1.5; }
+.society-fair .poisonBeans__rules strong { color:var(--sf-accent-light); letter-spacing:.1em; }
+.society-fair .poisonBeans__rules ul { padding-left:18px; margin:8px 0 0; }
+.society-fair .poisonBeans__stats { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.society-fair .poisonBeans__stats span { background:#ffffff0d; border:1px solid #9d69cc55; border-radius:10px; padding:7px 3px; }
+.society-fair .poisonBeans__stats small { display:block; font-size:7px; color:#b9a8c8; }
+.society-fair .poisonBeans__stats b { display:block; margin-top:3px; color:#f5c84c; font-size:11px; }
+.society-fair .poisonBeans__grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px 7px; padding:10px 2px; }
+.society-fair .poisonBean { width:100%; aspect-ratio:1.5/1; min-height:28px; padding:0; border:2px solid #ffffff55; border-radius:50%; box-shadow:inset -5px -4px 7px #0004, 0 3px 8px #0005; transition:transform .12s,filter .12s,opacity .12s; }
+.society-fair .poisonBean:not(:disabled):hover { transform:translateY(-2px); filter:brightness(1.15); }
+.society-fair .poisonBean.is-eaten { opacity:.38; box-shadow:none; }
+.society-fair .poisonBean.is-poison { opacity:1; animation:pb-pulse .7s ease-in-out infinite alternate; }
+.society-fair .poisonBeans__message { background:#ffffff0d; border:1px solid #9d69cc55; border-radius:12px; padding:10px; font-size:10px; line-height:1.4; }
+.society-fair .poisonBeans__message.is-won { background:#14532d88; border-color:#4ade80; }
+.society-fair .poisonBeans__message.is-lost { background:#450a0a99; border-color:#fb7185; }
+@keyframes pb-pulse { to { transform:scale(1.08); box-shadow:0 0 14px #ef4444; } }
+
+/* Keep every Society Fair action button in the same purple family. */
+.society-fair .phoneAction,
+.society-fair .answers button,
+.society-fair .numbers button {
+  background:linear-gradient(180deg,var(--sf-accent-light),var(--sf-accent));
+  color:#fff;
+  border:1px solid #d8b9f5;
+  border-radius:10px;
+  box-shadow:0 4px 12px #6f35a644;
+}
+.society-fair .phoneAction:hover,
+.society-fair .answers button:hover,
+.society-fair .numbers button:hover { filter:brightness(1.08); }
+
+/* Developer Dash remains INSIDE a landscape phone shell. */
+.society-fair .phone.is-landscape {
+  width:min(620px,94vw);
+  aspect-ratio:337/200;
+  background:#1e293b;
+  border:10px solid #0f172a;
+  border-radius:38px;
+  box-shadow:0 24px 70px #000c, inset 0 0 0 2px #ffffff18;
+  padding:12px;
+}
+.society-fair .phone.is-landscape::before {
+  content:'';
+  position:absolute;
+  left:50%; top:5px; transform:translateX(-50%);
+  width:72px; height:7px; border-radius:999px; background:#05070c; z-index:5;
+}
+.society-fair .phone.is-landscape .phoneScreen {
+  inset:12px;
+  border-radius:25px;
+  border:2px solid #ffffff16;
+  padding:22px 18px 48px;
+  overflow:hidden;
+}
+.society-fair .phone.is-landscape .developer-game { min-height:0; overflow:hidden; }
+.society-fair .phone.is-landscape .runner { min-height:0; max-height:none; }

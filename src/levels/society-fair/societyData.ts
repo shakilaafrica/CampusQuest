@@ -54,13 +54,13 @@ export const SOCIETIES: SocietyDef[] = [
     code: 'STA',
     p: { x: 500, y: 555 },
     npcKind: 'host',
-    orientation: 'landscape',
+    orientation: 'portrait',
     greeting:
-      "Statistics isn't just numbers — it's how we make sense of uncertainty, data and the world around us. Let's see how lucky and statistically sharp you are. Beat our Probability Snakes & Ladders challenge to earn our joining code!",
-    activityPrompt: 'Open phone to play Probability Snakes & Ladders',
+      'Welcome to StatsGeeks, here we love games of chance and learning about statistics. Play our game of chance following the link on your phone to see if you love what our society has to offer.',
+    activityPrompt: 'Open phone to play Poison Beans',
     reminder: 'You already completed our challenge! Remember our code: STA.',
     afterComplete:
-      "Nice rolling! If Stats Society sounds like your crowd, use code STA when you register on PeopleSoft.",
+      "Nice work! You'd fit right in. If Stats Society sounds like your crowd, use code STA when you register on PeopleSoft.",
   },
   {
     id: 'math',

@@ -1,165 +1,124 @@
-import React, { useEffect, useState } from 'react';
-import {
-  BOARD_SIZE,
-  BOARD_SPECIALS,
-  PROBABILITY_QUESTIONS,
-  ProbQuestion,
-  sleep,
-} from '../societyData';
+import React, { useEffect, useMemo, useState } from 'react';
 
-function boardOrder() {
-  // Boustrophedon (snake) order across a 5x5 grid, square 1 bottom-left.
-  const rows: number[][] = [];
+type Phase = 'intro' | 'playing' | 'won' | 'lost';
+type Turn = 'player' | 'society';
+type Bean = { id: number; color: string; eaten: boolean };
 
-  for (let r = 0; r < 5; r++) {
-    const row = Array.from({ length: 5 }, (_, c) => r * 5 + c + 1);
-    if (r % 2 === 1) row.reverse();
-    rows.unshift(row);
-  }
+const COLORS = ['#ef4444','#f59e0b','#eab308','#22c55e','#14b8a6','#3b82f6','#8b5cf6','#ec4899','#f97316','#84cc16'];
+const TOTAL = 10;
+const NPC_DELAY = 900;
 
-  return rows;
-}
-
-const ROWS = boardOrder();
+const freshBeans = (): Bean[] => COLORS.map((color, id) => ({ id, color, eaten: false }));
+const poisonPick = () => Math.floor(Math.random() * TOTAL);
 
 export default function StatsGame({ onComplete }: { onComplete: () => void }) {
-  const [square, setSquare] = useState(1);
-  const [rolling, setRolling] = useState(false);
-  const [dice, setDice] = useState(1);
-  const [quiz, setQuiz] = useState<ProbQuestion | null>(null);
-  const [message, setMessage] = useState('Press E or ROLL to start!');
+  const [phase, setPhase] = useState<Phase>('intro');
+  const [beans, setBeans] = useState<Bean[]>(freshBeans);
+  const [poison, setPoison] = useState(poisonPick);
+  const [turn, setTurn] = useState<Turn>('player');
+  const [message, setMessage] = useState('One bean is poison. Can you outlast the StatsGeek?');
 
-  const roll = async () => {
-    if (rolling || quiz) return;
-    setRolling(true);
+  const remaining = useMemo(() => beans.filter((b) => !b.eaten).length, [beans]);
 
-    for (let i = 0; i < 6; i++) {
-      setDice(1 + Math.floor(Math.random() * 6));
-      await sleep(70);
-    }
+  const start = () => {
+    setBeans(freshBeans());
+    setPoison(poisonPick());
+    setTurn('player');
+    setMessage('Your turn. Tap a bean to eat it.');
+    setPhase('playing');
+  };
 
-    const value = 1 + Math.floor(Math.random() * 6);
-    setDice(value);
+  const eat = (id: number) => {
+    if (phase !== 'playing' || turn !== 'player') return;
+    const bean = beans.find((b) => b.id === id);
+    if (!bean || bean.eaten) return;
 
-    const destination = Math.min(BOARD_SIZE, square + value);
-
-    for (let n = square + 1; n <= destination; n++) {
-      setSquare(n);
-      await sleep(130);
-    }
-
-    setRolling(false);
-
-    if (destination >= BOARD_SIZE) {
-      setMessage('Final square reached!');
-      setTimeout(onComplete, 500);
+    setBeans((prev) => prev.map((b) => (b.id === id ? { ...b, eaten: true } : b)));
+    if (id === poison) {
+      setMessage('You ate the poison. Better luck next time.');
+      setPhase('lost');
       return;
     }
-
-    const special = BOARD_SPECIALS[destination];
-
-    if (special?.kind === 'quiz') {
-      setQuiz(
-        PROBABILITY_QUESTIONS[Math.floor(Math.random() * PROBABILITY_QUESTIONS.length)]
-      );
-      return;
-    }
-
-    if (special?.kind === 'ladder') {
-      setMessage('Ladder! Climbing up!');
-      await sleep(500);
-      setSquare(special.to);
-    } else if (special?.kind === 'snake') {
-      setMessage('Snake! Sliding down!');
-      await sleep(500);
-      setSquare(special.to);
-    } else {
-      setMessage('Press E or ROLL to continue.');
-    }
+    setTurn('society');
+    setMessage('The Society Member is choosing...');
   };
 
   useEffect(() => {
+    if (phase !== 'playing' || turn !== 'society') return;
+    const timer = window.setTimeout(() => {
+      const available = beans.filter((b) => !b.eaten);
+      if (!available.length) return;
+      const chosen = available[Math.floor(Math.random() * available.length)];
+      setBeans((prev) => prev.map((b) => (b.id === chosen.id ? { ...b, eaten: true } : b)));
+      if (chosen.id === poison) {
+        setMessage('The Society Member ate the poison! You win!');
+        setPhase('won');
+        window.setTimeout(onComplete, 650);
+      } else {
+        const after = Math.max(1, available.length - 1);
+        setTurn('player');
+        setMessage(`Your turn. 1 in ${after} chance.`);
+      }
+    }, NPC_DELAY);
+    return () => window.clearTimeout(timer);
+  }, [beans, onComplete, phase, poison, turn]);
+
+  useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'e') {
+      if (e.key === 'Enter' && phase !== 'playing') {
         e.preventDefault();
-        roll();
+        start();
       }
     };
-
-    addEventListener('keydown', key);
-    return () => removeEventListener('keydown', key);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [square, rolling, quiz]);
-
-  const answer = (i: number) => {
-    if (!quiz) return;
-
-    if (i === quiz.correct) {
-      setMessage('Correct — stay right there!');
-    } else {
-      setMessage('Not quite — back 3 squares!');
-      setSquare((s) => Math.max(1, s - 3));
-    }
-
-    setQuiz(null);
-  };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [phase]);
 
   return (
-    <>
-      <div className="phoneTop">STATS SOC // PROBABILITY BOARD</div>
-      <p className="phoneHint">Square {square}/{BOARD_SIZE} · [E] Roll dice</p>
+    <div className="poisonBeans">
+      <div className="phoneTop">GAME OF CHANCE</div>
+      <p className="poisonBeans__subtitle">A statistics lesson disguised as a snack.</p>
 
-      <div className="ladderBoard">
-        {ROWS.map((row, ri) => (
-          <div className="ladderRow" key={ri}>
-            {row.map((n) => {
-              const special = BOARD_SPECIALS[n];
-
+      {phase === 'intro' ? (
+        <>
+          <div className="poisonBeans__rules">
+            <strong>HOW TO PLAY</strong>
+            <ul>
+              <li>There are 10 colourful beans.</li>
+              <li>One bean is secretly poisoned.</li>
+              <li>You and the StatsGeek take turns eating one.</li>
+              <li>If you eat the poison, you lose.</li>
+              <li>If the StatsGeek eats it first, you win.</li>
+            </ul>
+          </div>
+          <button className="phoneAction" onClick={start}>START GAME</button>
+        </>
+      ) : (
+        <>
+          <div className="poisonBeans__stats">
+            <span><small>TURN</small><b>{turn === 'player' ? 'YOU' : 'NPC'}</b></span>
+            <span><small>BEANS</small><b>{remaining}</b></span>
+            <span><small>ODDS</small><b>1 in {Math.max(1, remaining)}</b></span>
+          </div>
+          <div className={`poisonBeans__grid ${turn === 'society' ? 'is-disabled' : ''}`}>
+            {beans.map((bean) => {
+              const revealedPoison = (phase === 'won' || phase === 'lost') && bean.id === poison;
               return (
-                <div
-                  key={n}
-                  className={
-                    'ladderSquare' +
-                    (n === square ? ' is-here' : '') +
-                    (special?.kind === 'ladder' ? ' is-ladder' : '') +
-                    (special?.kind === 'snake' ? ' is-snake' : '') +
-                    (special?.kind === 'quiz' ? ' is-quiz' : '')
-                  }
-                >
-                  <span className="ladderNum">{n}</span>
-                  {special?.kind === 'ladder' && <span className="ladderIcon">▲</span>}
-                  {special?.kind === 'snake' && <span className="ladderIcon">▼</span>}
-                  {special?.kind === 'quiz' && <span className="ladderIcon">?</span>}
-                  {n === square && <span className="ladderToken">🧑</span>}
-                </div>
+                <button
+                  key={bean.id}
+                  className={`poisonBean ${bean.eaten ? 'is-eaten' : ''} ${revealedPoison ? 'is-poison' : ''}`}
+                  style={{ background: revealedPoison ? '#ef4444' : bean.eaten ? '#334155' : bean.color }}
+                  onClick={() => eat(bean.id)}
+                  disabled={bean.eaten || turn !== 'player' || phase !== 'playing'}
+                  aria-label={`Bean ${bean.id + 1}`}
+                />
               );
             })}
           </div>
-        ))}
-      </div>
-
-      <div className="ladderControls">
-        <div className="die">🎲 {dice}</div>
-        <button className="phoneAction" onClick={roll} disabled={rolling || !!quiz}>
-          ROLL [E]
-        </button>
-      </div>
-
-      <p className="phoneFact">{message}</p>
-
-      {quiz && (
-        <div className="phoneQuiz">
-          <small>PROBABILITY SQUARE</small>
-          <p>{quiz.q}</p>
-          <div className="answers">
-            {quiz.options.map((opt, i) => (
-              <button key={opt} onClick={() => answer(i)}>
-                {opt}
-              </button>
-            ))}
-          </div>
-        </div>
+          <div className={`poisonBeans__message ${phase === 'won' ? 'is-won' : ''} ${phase === 'lost' ? 'is-lost' : ''}`}>{message}</div>
+          {(phase === 'won' || phase === 'lost') && <button className="phoneAction" onClick={start}>PLAY AGAIN</button>}
+        </>
       )}
-    </>
+    </div>
   );
 }
