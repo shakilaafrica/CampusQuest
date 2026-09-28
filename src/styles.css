@@ -5,3 +5,73 @@
 .primary{background:linear-gradient(135deg,var(--cq-purple2),var(--cq-purple))!important;color:#fff!important;box-shadow:0 8px 24px #6d28d955}
 .avatar.sel{border-color:var(--cq-purple2)!important;background:#3b1b66!important}.hud,.brief,.login-card{border-color:#a78bfa55!important}.mission-card{background:linear-gradient(145deg,#32145be8,#21103de8)!important;border:1px solid #a78bfa55}.dot.active{background:var(--cq-purple2)!important}.marker:not(.lock):not(.done){background:var(--cq-deep)!important;box-shadow:0 0 0 4px var(--cq-purple2),0 0 24px #8b5cf699!important}.line{background:var(--cq-purple2)!important}.stop{background:#43236b!important}.mission-toolbar button{background:#2e1065ee!important;border-color:#a78bfa88!important}.brief h1{color:#f5f3ff}.brief p{color:#ddd6fe}
 html,body,#root{margin:0;width:100%;height:100%;min-height:100%;}body{overflow:hidden}.level-shell{width:100vw;height:100vh;overflow:hidden;background:#12091d}.level-shell>main,.level-shell>.sws-mission,.level-shell>.osc-mission,.level-shell>.app{width:100%;height:100%}
+
+/* =========================================================
+   Campus Quest system UI — login/avatar/student card/intro/
+   mission-complete/stats-for-nerds. Reuses --cq-* purple tokens
+   defined above.
+   ========================================================= */
+.cq-login-card{max-width:520px}
+.cq-login-panel{background:linear-gradient(145deg,#32145be8,#21103de8);border:1px solid #a78bfa55;border-radius:18px;padding:22px;margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.cq-login-panel .kicker{color:var(--cq-glow);font-weight:900;letter-spacing:1px}
+.cq-field-label{font-size:12px;color:#ddd6fe;font-weight:700}
+.cq-login-panel input{padding:15px 16px;border-radius:12px;border:1px solid #ffffff2e;background:#fff;color:#132031;font-weight:800;letter-spacing:2px;font-size:16px}
+.cq-hint{color:#c9bdf0;font-size:12px}
+.cq-error{background:#4c1d3b;border:1px solid #f472b688;color:#fecdd3;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5}
+.cq-login-divider{height:1px;background:#a78bfa33;margin:6px 0}
+.cq-lecturer-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cq-lecturer-row span{color:#c9bdf0;font-size:13px}
+
+.cq-avatar-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin:22px 0}
+.cq-avatar-grid .avatar{width:100%;height:170px}
+.cq-avatar-grid .avatar img{height:120px}
+
+.cq-card-icon{position:absolute;top:18px;right:20px;z-index:15;width:56px;height:56px;border-radius:999px;border:2px solid var(--cq-purple2);background:#1c0e35ee;padding:4px;cursor:pointer;box-shadow:0 8px 22px #0007}
+.cq-card-icon img{width:100%;height:100%;object-fit:contain;border-radius:999px}
+.cq-card-overlay{position:absolute;inset:0;z-index:25;background:#020913b3;display:flex;justify-content:flex-end;align-items:flex-start;padding:20px}
+.cq-card{width:280px;background:linear-gradient(160deg,#32145bf5,#170a2cf5);border:1px solid #a78bfa66;border-radius:22px;padding:22px;text-align:center;box-shadow:0 20px 50px #000a}
+.cq-card-kicker{font-weight:900;color:var(--cq-glow);letter-spacing:1px;font-size:13px}
+.cq-card-sub{color:#c9bdf0;font-size:11px;margin-bottom:12px}
+.cq-card-face{width:96px;height:96px;object-fit:contain;background:#ffffff14;border-radius:16px;border:1px solid #a78bfa55;padding:8px}
+.cq-card-number{font-weight:900;font-size:18px;letter-spacing:2px;margin-top:12px}
+.cq-card-title{color:var(--cq-glow);font-size:12px;font-weight:800;margin:4px 0 14px}
+.cq-card-missions{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:16px}
+.cq-card-dots{display:flex;gap:6px}
+.cq-dot{width:12px;height:12px;border-radius:999px;background:#ffffff25}
+.cq-dot.done{background:var(--cq-purple2)}
+.cq-logout{width:100%}
+
+.cq-intro h1{font-size:22px;margin-top:6px}
+.cq-intro-title{margin-top:16px;font-size:15px}
+.cq-intro-title b{color:var(--cq-glow)}
+
+.cq-complete .kicker{color:#58d68d!important}
+.cq-complete-section{margin:16px 0}
+.cq-complete-section b{display:block;color:var(--cq-glow);font-size:12px;letter-spacing:1px;margin-bottom:8px}
+.cq-complete-section ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cq-badge{display:inline-block;padding:10px 16px;border-radius:12px;background:linear-gradient(135deg,var(--cq-purple2),var(--cq-purple));font-weight:900;letter-spacing:1px}
+.cq-complete-count{color:#c9bdf0;font-weight:800;margin:14px 0}
+
+.cq-stats-gate{max-width:420px;text-align:center}
+.cq-stats-gate input{width:100%;margin:12px 0;text-align:center;padding:14px;border-radius:12px;border:1px solid #ffffff2e}
+.cq-stats-gate .secondary{width:100%;margin-top:10px}
+
+.cq-stats-dashboard{width:min(780px,94vw);max-height:88vh;overflow-y:auto}
+.cq-stats-header{display:flex;justify-content:space-between;align-items:flex-start}
+.cq-stats-header h1{margin:2px 0 0;font-size:22px}
+.cq-live{color:#58d68d;font-weight:900;font-size:13px;letter-spacing:1px}
+.cq-loading{color:#c9bdf0;padding:20px 0}
+.cq-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.cq-stat-tile{background:#ffffff0d;border:1px solid #a78bfa33;border-radius:14px;padding:14px}
+.cq-stat-label{font-size:11px;color:#c9bdf0;letter-spacing:.5px}
+.cq-stat-value{font-size:26px;font-weight:900;color:#fff;margin-top:4px}
+.cq-mission-progress{margin-top:6px}
+.cq-mission-progress b{display:block;color:var(--cq-glow);font-size:12px;margin-bottom:10px;letter-spacing:1px}
+.cq-bar-row{display:grid;grid-template-columns:90px 1fr 34px;align-items:center;gap:10px;margin-bottom:8px;font-size:12px;color:#e5deff}
+.cq-bar-track{height:10px;border-radius:8px;background:#ffffff14;overflow:hidden}
+.cq-bar-fill{height:100%;background:linear-gradient(90deg,var(--cq-purple2),var(--cq-purple))}
+
+.cq-loading-text{color:#c9bdf0;font-weight:800;letter-spacing:1px}
+
+.marker.lock{cursor:default}
+@media(max-width:700px){.cq-avatar-grid{grid-template-columns:1fr 1fr}.cq-stat-grid{grid-template-columns:1fr 1fr}.cq-card-overlay{padding:10px}}
