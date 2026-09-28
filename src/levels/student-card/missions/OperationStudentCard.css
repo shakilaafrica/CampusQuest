@@ -41,12 +41,25 @@
   max-width: 320px;
 }
 
-.op-card > .acc-scene {
+/* The stage wraps whatever scene / overlay / minigame is currently on top so
+   the HUD stays fixed and everything below it shares a single positioned
+   container. Dialogue boxes are children of this container too, so they
+   overlay the scene rather than being sibling elements to it. */
+.op-card__stage {
+  position: relative;
   flex: 1;
+  min-height: 0;
+}
+
+.op-card__stage > .bg-scene,
+.op-card__stage > .photobooth {
+  position: absolute;
+  inset: 0;
 }
 
 .op-card__overlay {
-  flex: 1;
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
