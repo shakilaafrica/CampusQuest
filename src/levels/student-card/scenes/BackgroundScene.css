@@ -1,0 +1,50 @@
+.bg-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--cq-navy, #0c2340);
+  /* Own stacking context: NPC z-indexes (derived from their y position, up
+     to ~94) must stay inside the scene rather than rising above dialogue
+     boxes and overlays drawn on top of it. */
+  isolation: isolate;
+}
+
+.bg-scene__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Cover the scene without stretching. Interaction zones use the same
+     percentage coordinate space, so the visual targets and the zones scale
+     together as the viewport changes. */
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bg-scene__player {
+  position: absolute;
+  /* Anchor at the character's feet: bottom-centre of the sprite sits at
+     (left, top). Matches the anchoring used by NPC zones for consistency. */
+  transform: translate(-50%, -100%);
+  font-size: 40px;
+  line-height: 1;
+  z-index: 10;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.4));
+  transition: left 0.05s linear, top 0.05s linear;
+  will-change: left, top;
+}
+
+/* NPCs are drawn on top of the background but below the player so the
+   player can walk in front of them when nearby. Same feet-first anchoring
+   as the player so their interaction zones line up visually. */
+.bg-scene__npc {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  line-height: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.35));
+}
