@@ -17,15 +17,26 @@ export interface InventoryItem {
   icon: string; // emoji glyph, swap for a real sprite path later
 }
 
-/** Finite-state stages for the "Operation: Student Card" mission. */
-export type MissionStage =
-  | 'intro'
-  | 'explore_desk' // walking toward the front-desk worker
-  | 'dialogue_worker' // worker explains the photobooth
-  | 'explore_booth' // walking toward the photobooth chair
-  | 'minigame' // the photo-taking minigame is active
-  | 'dialogue_result_win'
-  | 'dialogue_result_lose'
-  | 'complete';
+/**
+ * Discrete scenes for the "Operation: Student Card" mission. Each scene owns
+ * its own background image, spawn position and interaction zones. The
+ * PhotoBoothMinigame overlay is treated as its own scene so the underlying
+ * reception scene can be unmounted while the minigame is playing.
+ */
+export type StudentCardScene =
+  | 'introCard'              // mission-card overlay before anything is shown
+  | 'intro'                  // intro-scene.jfif + player monologue
+  | 'accessControlEntrance'  // exterior; walk to the glass doors and press E
+  | 'cardServicesReception'  // interior; receptionist + photobooth zones
+  | 'photoMinigame'          // existing photobooth minigame overlay
+  | 'complete';              // completion card
+
+/**
+ * Result of the most recent photobooth attempt. Persisted across the
+ * minigame -> reception transition so the reception scene knows which
+ * follow-up dialogue to play. Reset back to 'none' once the failure dialogue
+ * has been dismissed so the player can retry cleanly.
+ */
+export type PhotoResult = 'none' | 'success' | 'failure';
 
 export type FaceExpression = 'neutral' | 'happy' | 'funny';
