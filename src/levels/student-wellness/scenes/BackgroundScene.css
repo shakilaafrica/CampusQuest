@@ -1,0 +1,60 @@
+.bg-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0c2340;
+  /* Own stacking context: NPC z-indexes (derived from their y position, up to
+     ~94) must stay inside the scene rather than rising above dialogue boxes
+     and overlays drawn on top of it. */
+  isolation: isolate;
+}
+
+.bg-scene__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bg-scene__player {
+  position: absolute;
+  /* Anchor at the character's feet: bottom-centre of the sprite sits at (left, top). */
+  transform: translate(-50%, -100%);
+  z-index: 10;
+  pointer-events: none;
+  filter: drop-shadow(0 5px 3px rgba(0, 0, 0, 0.45));
+  transition: left 0.05s linear, top 0.05s linear;
+  will-change: left, top;
+}
+
+.bg-scene__player img {
+  display: block;
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+/* NPCs (Kirah, etc.) are drawn on top of the background but below the player
+   so the player character can walk in front of them when nearby. Same
+   feet-first anchoring as the player. */
+.bg-scene__npc {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  filter: drop-shadow(0 5px 3px rgba(0, 0, 0, 0.4));
+}
+
+.bg-scene__npc img {
+  display: block;
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  image-rendering: auto;
+  user-select: none;
+}

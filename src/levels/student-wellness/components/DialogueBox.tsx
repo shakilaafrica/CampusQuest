@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useKeyPress } from '../hooks/useKeyboard';
 import './DialogueBox.css';
 
@@ -19,6 +19,9 @@ export function DialogueBox({ lines, onComplete }: Props) {
   const [index, setIndex] = useState(0);
   const [displayed, setDisplayed] = useState('');
   const line = lines[index];
+  // onComplete must fire once only — a fast double E-press (or E + click) can
+  // land before the parent has unmounted this box.
+  const completedRef = useRef(false);
 
   useEffect(() => {
     setDisplayed('');
@@ -40,6 +43,8 @@ export function DialogueBox({ lines, onComplete }: Props) {
     if (index < lines.length - 1) {
       setIndex((i) => i + 1);
     } else {
+      if (completedRef.current) return;
+      completedRef.current = true;
       onComplete();
     }
   };

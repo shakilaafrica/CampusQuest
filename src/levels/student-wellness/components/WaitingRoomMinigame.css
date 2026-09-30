@@ -1,97 +1,122 @@
-.waiting-room {
+.wrm {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 22px;
-  background: rgba(18, 58, 60, 0.92);
-  z-index: 40;
-  padding: 24px;
-}
-
-.waiting-room__banner {
-  font-family: var(--cq-font-display, 'Fredoka', sans-serif);
-  font-weight: 600;
-  color: #bdf0e6;
-  font-size: 16px;
-}
-
-.waiting-room__stage {
-  position: relative;
-  width: min(520px, 90vw);
-  height: 220px;
-  background: #0d2b2c;
-  border: 3px solid #4fd8c4;
-  border-radius: 14px;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  background: #0c2340;
+  z-index: 40;
 }
 
-.waiting-room__doorway {
-  position: relative;
-  flex: 1;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 18px;
-}
-
-.waiting-room__doctor {
-  position: relative;
-  opacity: 0;
-  transform: translateY(-16px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.waiting-room__doctor--visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.waiting-room__doctor-emoji { font-size: 44px; }
-
-.waiting-room__bubble {
+.wrm__background {
   position: absolute;
-  top: 52px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Doctor sprite is a foreground overlay ON TOP OF the background image —
+   never baked into it. Positioned in front of the central double doors.
+
+   Positioning contract:
+     - horizontally centred on the doors (51%)
+     - feet planted just above the floor line (bottom: 9%)
+     - height is a % of scene height so aspect ratio is preserved and it
+       scales for different screen sizes.  */
+.wrm__doctor {
+  position: absolute;
+  left: 51%;
+  bottom: 9%;
+  height: 60%;
+  width: auto;
+  max-width: 40%;
+  transform: translateX(-50%) translateY(12px);
+  opacity: 0;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  z-index: 5;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  filter: drop-shadow(0 8px 6px rgba(0, 0, 0, 0.35));
+}
+.wrm__doctor--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.wrm__bubble {
+  position: absolute;
+  left: 51%;
+  bottom: 72%;
+  transform: translateX(-50%);
   background: var(--cq-cream, #f6f2e7);
   color: var(--cq-ink, #17212b);
-  padding: 8px 14px;
-  border-radius: 12px;
+  padding: 10px 16px;
+  border: 2px solid var(--cq-navy, #0c2340);
+  border-radius: 14px;
   font-family: var(--cq-font-body, 'Inter', sans-serif);
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
   white-space: nowrap;
+  z-index: 20;
+  animation: wrm-bubble-in 0.18s ease-out;
 }
-.waiting-room__bubble::after {
+
+.wrm__bubble::after {
   content: '';
   position: absolute;
-  top: -6px;
+  left: 50%;
+  bottom: -8px;
+  transform: translateX(-50%);
+  border-width: 8px 8px 0 8px;
+  border-style: solid;
+  border-color: var(--cq-navy, #0c2340) transparent transparent transparent;
+}
+.wrm__bubble::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  transform: translateX(-50%);
+  border-width: 6px 6px 0 6px;
+  border-style: solid;
+  border-color: var(--cq-cream, #f6f2e7) transparent transparent transparent;
+  z-index: 1;
+}
+
+@keyframes wrm-bubble-in {
+  from { transform: translate(-50%, 6px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.wrm__banner {
+  position: absolute;
+  top: 18px;
   left: 50%;
   transform: translateX(-50%);
-  border-width: 0 6px 6px 6px;
-  border-style: solid;
-  border-color: transparent transparent var(--cq-cream, #f6f2e7) transparent;
+  padding: 8px 18px;
+  background: rgba(12, 35, 64, 0.85);
+  border: 2px solid var(--cq-gold, #e7b750);
+  border-radius: 999px;
+  color: var(--cq-cream, #f6f2e7);
+  font-family: var(--cq-font-display, 'Fredoka', sans-serif);
+  font-weight: 600;
+  font-size: 15px;
+  z-index: 25;
 }
 
-.waiting-room__seats {
-  text-align: center;
-  font-size: 26px;
-  padding-bottom: 14px;
-  opacity: 0.8;
-}
-
-.waiting-room__hand-btn {
+.wrm__hand-btn {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
   appearance: none;
   border: none;
   border-radius: 999px;
-  padding: 16px 30px;
+  padding: 16px 32px;
   background: var(--cq-gold, #e7b750);
   color: var(--cq-navy, #0c2340);
   font-family: var(--cq-font-display, 'Fredoka', sans-serif);
@@ -100,17 +125,32 @@
   cursor: pointer;
   box-shadow: 0 5px 0 #b8862c;
   transition: transform 0.08s ease, filter 0.15s ease;
+  z-index: 30;
 }
-.waiting-room__hand-btn:hover:not(:disabled) { transform: translateY(-2px); }
-.waiting-room__hand-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #b8862c; }
-.waiting-room__hand-btn:disabled { filter: grayscale(0.5) brightness(0.8); cursor: not-allowed; }
-.waiting-room__hand-btn:focus-visible { outline: 3px solid #bdf0e6; outline-offset: 2px; }
+.wrm__hand-btn:hover:not(:disabled) { transform: translate(-50%, -2px); }
+.wrm__hand-btn:active:not(:disabled) { transform: translate(-50%, 2px); box-shadow: 0 2px 0 #b8862c; }
+.wrm__hand-btn:disabled { filter: grayscale(0.35) brightness(0.85); cursor: not-allowed; }
+.wrm__hand-btn:focus-visible { outline: 3px solid #bdf0e6; outline-offset: 2px; }
 
-.waiting-room__hint {
-  font-family: var(--cq-font-body, 'Inter', sans-serif);
-  color: #bdf0e6;
-  font-size: 12px;
-  opacity: 0.8;
+.wrm__hint {
+  position: absolute;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(360px, 80%);
   text-align: center;
-  max-width: 320px;
+  padding: 6px 12px;
+  background: rgba(12, 35, 64, 0.7);
+  border-radius: 10px;
+  font-family: var(--cq-font-body, 'Inter', sans-serif);
+  color: var(--cq-cream, #f6f2e7);
+  font-size: 12px;
+  z-index: 25;
+}
+
+@media (max-width: 700px) {
+  .wrm__doctor { height: 55%; }
+  .wrm__banner { font-size: 13px; padding: 6px 14px; }
+  .wrm__hand-btn { padding: 12px 24px; font-size: 15px; }
+  .wrm__bubble { font-size: 13px; padding: 8px 12px; }
 }
