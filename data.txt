@@ -1,0 +1,11 @@
+New User Login: 
+- Student Number 
+- Password
+
+Existing User Login:
+- Student Number 
+- Password
+
+Stats Management:
+- Privileged user email
+- Registered password
