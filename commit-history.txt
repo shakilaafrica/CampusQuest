@@ -1,0 +1,154 @@
+﻿Commit #1
+Hash: 1c6fe43
+Author: Shakila Camara Africa
+Date: 2026-09-17
+Commit: Initial commit
+----------------------------------------
+
+Commit #2
+Hash: ab59b8d
+Author: KautharAllie
+Date: 2026-09-24
+Commit: integrated project: database, networking features, front end, back end, main menu
+----------------------------------------
+
+Commit #3
+Hash: 8a98da5
+Author: Shakila Africa
+Date: 2026-09-26
+Commit: chore: initalise moduler CampusQuest application
+----------------------------------------
+
+Commit #4
+Hash: cd0b636
+Author: Shakila Africa
+Date: 2026-09-26
+Commit: refactor: move Society Fair assets into level module
+----------------------------------------
+
+Commit #5
+Hash: 8750a7f
+Author: Shakila Africa
+Date: 2026-09-27
+Commit: Edited the user interface
+----------------------------------------
+
+Commit #6
+Hash: 8874f09
+Author: Shakila Africa
+Date: 2026-09-27
+Commit: feat: integrate Society Fair with Supabase profiles and progression
+----------------------------------------
+
+Commit #7
+Hash: f53ecda
+Author: KautharAllie
+Date: 2026-09-28
+Commit: Student Wellness Services Search : v2, dialogue boxes not working, all test cases work
+----------------------------------------
+
+Commit #8
+Hash: fa70875
+Author: Shakila Africa
+Date: 2026-09-28
+Commit: feat: add NPC 9 and NPC 10 assets
+----------------------------------------
+
+Commit #9
+Hash: ac62667
+Author: Shakila Africa
+Date: 2026-09-28
+Commit: feat: add NPC 9 and NPC 10 assets
+----------------------------------------
+
+Commit #10
+Hash: 462cacc
+Author: KautharAllie
+Date: 2026-09-28
+Commit: Merge branch 'feature/level2-student-wellness' into development
+----------------------------------------
+
+Commit #11
+Hash: 7cf21ec
+Author: KautharAllie
+Date: 2026-09-28
+Commit: Operation: Student Card; v2 - need to fix player avatar
+----------------------------------------
+
+Commit #12
+Hash: 4d437cb
+Author: KautharAllie
+Date: 2026-09-28
+Commit: Operation: Student Card; v2 - need to fix player avatar
+----------------------------------------
+
+Commit #13
+Hash: 614e6ed
+Author: KautharAllie
+Date: 2026-09-28
+Commit: Merge remote-tracking branch 'origin/development' into feature/level4-student-card
+----------------------------------------
+
+Commit #14
+Hash: d53ba06
+Author: Shakila Africa
+Date: 2026-10-01
+Commit: Merge latest development into level1
+----------------------------------------
+
+Commit #15
+Hash: bfe8f3c
+Author: Shakila Africa
+Date: 2026-10-01
+Commit: Merge latest development into level3
+----------------------------------------
+
+Commit #16
+Hash: 0c54bb4
+Author: Shakila Africa
+Date: 2026-10-02
+Commit: Update authentication, Jammie Rush and Society Fair
+----------------------------------------
+
+Commit #17
+Hash: 0b43a6e
+Author: Kauthar Allie
+Date: 2026-10-02
+Commit: data required for demo
+----------------------------------------
+
+Commit #18
+Hash: e6af6d1
+Author: Shakila Africa
+Date: 2026-10-02
+Commit: Complete Campus Quest game integration and final polish
+----------------------------------------
+
+Commit #19
+Hash: 33f8683
+Author: Shakila Africa
+Date: 2026-10-02
+Commit: Merge game integration into development
+----------------------------------------
+
+Commit #20
+Hash: 33f8c31
+Author: Shakila Africa
+Date: 2026-10-02
+Commit: Add unit tests and Vitest testing setup
+----------------------------------------
+
+Commit #21
+Hash: 1ec9a84
+Author: Shakila Africa
+Date: 2026-10-02
+Commit: Add unit tests and update project setup documentation
+----------------------------------------
+
+Commit #22
+Hash: d4572f4
+Author: Shakila Africa
+Date: 2026-10-02
+Commit: Fix doctor name display in Student Wellness mission
+----------------------------------------
+
