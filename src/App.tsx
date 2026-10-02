@@ -6,14 +6,15 @@ import { OperationStudentCard } from './levels/student-card/missions/OperationSt
 
 import { PlayerProvider, usePlayer, DEV_UNLOCK_ALL_LEVELS } from './context/PlayerContext';
 import { AVATAR_OPTIONS, avatarById } from './lib/avatars';
-import { STUDENT_NUMBER_EXAMPLE, isValidStudentNumber, normalizeStudentNumber } from './lib/studentNumber';
+import { STUDENT_NUMBER_EXAMPLE } from './lib/studentNumber';
 import { missionContent } from './lib/missionContent';
 import StudentCard from './components/StudentCard';
 import IntroModal from './components/IntroModal';
 import MissionCompleteModal from './components/MissionCompleteModal';
 import StatsForNerds from './components/StatsForNerds';
+import './campus-quest-entry.css';
 
-type Screen = 'login' | 'avatar' | 'intro' | 'map' | 'brief' | 'level';
+type Screen = 'login' | 'avatar' | 'intro' | 'map' | 'brief' | 'level' | 'staff-stats' | 'exit';
 type Pos = { x: number; y: number };
 
 // Marker positions on public/assets/campus-map.png, as % of image size.
@@ -36,18 +37,17 @@ export default function App() {
 }
 
 function Root() {
-  const { status, errorMessage, profile, progress, missionsCompleted, completeMission, retry } = usePlayer();
+  const { status, profile, progress, missionsCompleted, completeMission, logout } = usePlayer();
   const [screen, setScreen] = useState<Screen>('login');
   const [mission, setMission] = useState(0); // 0-indexed, mirrors old app
   const [pos, setPos] = useState<Pos>({ x: 50, y: 92 });
-  const [statsOpen, setStatsOpen] = useState(false);
   const [celebrateMission, setCelebrateMission] = useState<number | null>(null); // 1-4
 
-  // Returning students land straight on the map once their profile+progress load.
+  // Restore the correct entry point from the authenticated, database-backed profile.
   useEffect(() => {
-    if (status === 'ready' && profile?.selected_avatar && screen === 'login') {
-      setScreen('map');
-    }
+    if (status !== 'ready' || !profile || screen !== 'login') return;
+    if (profile.role === 'lecturer' || profile.role === 'tutor') setScreen('staff-stats');
+    else setScreen(profile.selected_avatar ? 'map' : 'avatar');
   }, [status, profile, screen]);
 
   const complete = async (missionNumber: number) => {
@@ -65,20 +65,16 @@ function Root() {
     );
   }
 
-  if (status === 'error') {
+  if (status === 'anonymous' || !profile || screen === 'exit') {
     return (
-      <div className="screen map" style={{ display: 'grid', placeItems: 'center' }}>
-        <div className="brief" style={{ textAlign: 'center' }}>
-          <h1>WE COULDN'T LOAD YOUR QUEST</h1>
-          <p>{errorMessage || 'Check your connection and try again.'}</p>
-          <button className="primary" onClick={retry}>RETRY</button>
-        </div>
-      </div>
+      <LoginScreen
+        onNew={() => setScreen('avatar')}
+        onLoad={() => setScreen(profile?.selected_avatar ? 'map' : 'avatar')}
+        onStaff={() => setScreen('staff-stats')}
+        exited={screen === 'exit'}
+        onExit={() => setScreen('exit')}
+      />
     );
-  }
-
-  if (screen === 'login' || !profile) {
-    return <LoginScreen onNew={() => setScreen('avatar')} onStatsClick={() => setStatsOpen(true)} statsOpen={statsOpen} onCloseStats={() => setStatsOpen(false)} />;
   }
 
   if (screen === 'avatar') {
@@ -91,6 +87,10 @@ function Root() {
 
   if (screen === 'intro') {
     return <IntroModal onBegin={() => setScreen('map')} />;
+  }
+
+  if (screen === 'staff-stats') {
+    return <StatsForNerds onLogout={() => { void logout().then(() => setScreen('login')); }} />;
   }
 
   return (
@@ -125,7 +125,6 @@ function Root() {
           onContinue={() => { setCelebrateMission(null); setScreen('map'); }}
         />
       )}
-      {statsOpen && <StatsForNerds onClose={() => setStatsOpen(false)} />}
     </>
   );
 }
@@ -135,18 +134,25 @@ function Root() {
 // ============================================================
 function LoginScreen({
   onNew,
-  onStatsClick,
-  statsOpen,
-  onCloseStats,
+  onLoad,
+  onStaff,
+  exited,
+  onExit,
 }: {
   onNew: () => void;
-  onStatsClick: () => void;
-  statsOpen: boolean;
-  onCloseStats: () => void;
+  onLoad: () => void;
+  onStaff: () => void;
+  exited: boolean;
+  onExit: () => void;
 }) {
-  const { login } = usePlayer();
+  const { newGame, loadGame, staffRegister, staffLogin } = usePlayer();
+  const [mode, setMode] = useState<'welcome' | 'staff' | 'staff-register'>('welcome');
   const [value, setValue] = useState('');
+  const [password, setPassword] = useState('');
+  const [staffEmail, setStaffEmail] = useState('');
+  const [staffPassword, setStaffPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (raw: string) => {
@@ -154,57 +160,107 @@ function LoginScreen({
     setError(null);
   };
 
-  const handleSubmit = async () => {
-    if (!isValidStudentNumber(value)) {
-      setError("That doesn't look like a valid student number.\nUse 6 letters followed by 3 numbers.\nExample: AFRSHA002");
+  const handleStudentAction = async (action: 'new' | 'load') => {
+    if (!value.trim() || !password) {
+      setError('Enter your student number and password.');
       return;
     }
     setSubmitting(true);
-    const result = await login(normalizeStudentNumber(value));
+    const result = action === 'new'
+      ? await newGame(value, password)
+      : await loadGame(value, password);
     setSubmitting(false);
+    setPassword('');
     if (!result.ok) {
-      if (result.reason === 'invalid') {
-        setError("That doesn't look like a valid student number.\nUse 6 letters followed by 3 numbers.\nExample: AFRSHA002");
-      } else {
-        setError(result.message);
-      }
+      setError(result.message);
       return;
     }
     if (result.kind === 'new') onNew();
-    // 'returning' is handled by Root's effect once status flips to 'ready'.
+    else onLoad();
+  };
+
+  const handleStaffLogin = async () => {
+    if (!staffEmail.trim() || !staffPassword) {
+      setError('Enter your staff email and password.');
+      return;
+    }
+    setSubmitting(true);
+    const result = await staffLogin(staffEmail, staffPassword);
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    onStaff();
+  };
+
+  const handleStaffRegister = async () => {
+    if (!staffEmail.trim() || !staffPassword) {
+      setError('Enter your staff email and password.');
+      return;
+    }
+    setSubmitting(true);
+    const result = await staffRegister(staffEmail, staffPassword);
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.message);
+      return;
+    }
+    setStaffPassword('');
+    setError(null);
+    setNotice('Registration submitted. Sign in with your staff email and password.');
+    setMode('staff');
   };
 
   return (
-    <div className="screen login">
-      <div className="login-card cq-login-card">
+    <div className="screen login cq-entry-screen">
+      <div className="login-card cq-login-card cq-entry-card">
         <div className="title">CAMPUS <span>QUEST</span></div>
         <div className="sub">YOUR CAMPUS ADVENTURE AWAITS</div>
 
-        <div className="cq-login-panel">
-          <div className="kicker">STUDENT LOGIN</div>
-          <label className="cq-field-label">Student Number</label>
-          <input
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            placeholder={STUDENT_NUMBER_EXAMPLE}
-            onKeyDown={(e) => e.key === 'Enter' && void handleSubmit()}
-            maxLength={9}
-            autoCapitalize="characters"
-          />
-          <small className="cq-hint">Student numbers contain 6 letters followed by 3 numbers.</small>
-          {error && <div className="cq-error">{error.split('\n').map((line, i) => <div key={i}>{line}</div>)}</div>}
-          <button className="primary" disabled={submitting} onClick={() => void handleSubmit()}>
-            {submitting ? 'LOADING…' : 'ENTER CAMPUS'}
-          </button>
-
-          <div className="cq-login-divider" />
-          <div className="cq-lecturer-row">
-            <span>Lecturer?</span>
-            <button className="secondary" onClick={onStatsClick}>📊 STATS FOR NERDS</button>
+        {exited ? (
+          <div className="cq-login-panel">
+            <div className="kicker">GAME EXITED</div>
+            <p className="cq-hint">Campus Quest has ended. You can close this tab.</p>
           </div>
-        </div>
+        ) : mode === 'staff' || mode === 'staff-register' ? (
+          <div className="cq-login-panel">
+            <div className="kicker">{mode === 'staff-register' ? 'STAFF REGISTRATION' : 'LECTURER / TUTOR'}</div>
+            <label className="cq-field-label" htmlFor="staff-email">Staff Email</label>
+            <input id="staff-email" type="email" value={staffEmail} onChange={(event) => { setStaffEmail(event.target.value); setError(null); setNotice(null); }} autoComplete="username" />
+            <label className="cq-field-label" htmlFor="staff-password">Password</label>
+            <input id="staff-password" type="password" value={staffPassword} onChange={(event) => { setStaffPassword(event.target.value); setError(null); }} autoComplete="current-password" />
+            {notice && <div className="cq-hint">{notice}</div>}
+            {error && <div className="cq-error">{error}</div>}
+            <button className="primary" disabled={submitting} onClick={() => void (mode === 'staff-register' ? handleStaffRegister() : handleStaffLogin())}>
+              {submitting ? 'PLEASE WAIT…' : mode === 'staff-register' ? 'REGISTER STAFF ACCOUNT' : 'STAFF SIGN IN'}
+            </button>
+            {mode === 'staff' ? (
+              <button className="secondary" disabled={submitting} onClick={() => { setMode('staff-register'); setError(null); setNotice(null); }}>REGISTER STAFF ACCOUNT</button>
+            ) : (
+              <button className="secondary" disabled={submitting} onClick={() => { setMode('staff'); setError(null); setNotice(null); }}>BACK TO STAFF SIGN IN</button>
+            )}
+            <button className="secondary" disabled={submitting} onClick={() => { setMode('welcome'); setError(null); setNotice(null); setStaffPassword(''); }}>BACK</button>
+          </div>
+        ) : (
+          <div className="cq-login-panel">
+            <div className="kicker">WELCOME TO CAMPUS QUEST</div>
+            <label className="cq-field-label" htmlFor="student-number">Student Number</label>
+            <input id="student-number" value={value} onChange={(event) => handleChange(event.target.value)} placeholder={STUDENT_NUMBER_EXAMPLE} maxLength={9} autoCapitalize="characters" autoComplete="username" />
+            <label className="cq-field-label" htmlFor="student-password">Password</label>
+            <input id="student-password" type="password" value={password} onChange={(event) => { setPassword(event.target.value); setError(null); }} autoComplete="current-password" />
+            {error && <div className="cq-error">{error}</div>}
+            <button className="primary" disabled={submitting} onClick={() => void handleStudentAction('new')}>
+              {submitting ? 'PLEASE WAIT…' : 'NEW GAME'}
+            </button>
+            <button className="primary" disabled={submitting} onClick={() => void handleStudentAction('load')}>
+              {submitting ? 'PLEASE WAIT…' : 'LOAD GAME'}
+            </button>
+            <button className="secondary" disabled={submitting} onClick={onExit}>EXIT</button>
+            <button className="cq-staff-link" disabled={submitting} onClick={() => { setMode('staff'); setError(null); setPassword(''); }}>LECTURER / TUTOR</button>
+          </div>
+        )}
       </div>
-      {statsOpen && <StatsForNerds onClose={onCloseStats} />}
     </div>
   );
 }
@@ -214,12 +270,13 @@ function LoginScreen({
 // ============================================================
 function AvatarScreen({ onChosen }: { onChosen: () => void }) {
   const { profile, chooseAvatar } = usePlayer();
-  const [selected, setSelected] = useState(AVATAR_OPTIONS[0].id);
+  const [selected, setSelected] = useState(profile?.selected_avatar ?? AVATAR_OPTIONS[0].id);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="screen login">
-      <div className="login-card cq-login-card">
+    <div className="screen login cq-entry-screen">
+      <div className="login-card cq-login-card cq-entry-card">
         <div className="title">WELCOME, <span>{profile?.student_number}</span></div>
         <div className="sub">CHOOSE YOUR PLAYER</div>
         <div className="cq-avatar-grid">
@@ -229,8 +286,11 @@ function AvatarScreen({ onChosen }: { onChosen: () => void }) {
               className={`avatar ${selected === a.id ? 'sel' : ''}`}
               onClick={() => setSelected(a.id)}
             >
-              <img src={a.portrait} alt={a.label} />
-              <b>{a.label}</b>
+              <img
+                className={a.id === 'npc9' || a.id === 'npc10' ? 'is-wide' : ''}
+                src={a.portrait}
+                alt=""
+              />
             </button>
           ))}
         </div>
@@ -239,13 +299,15 @@ function AvatarScreen({ onChosen }: { onChosen: () => void }) {
           disabled={saving}
           onClick={async () => {
             setSaving(true);
-            await chooseAvatar(selected);
+            const result = await chooseAvatar(selected);
             setSaving(false);
-            onChosen();
+            if (!result.ok) setError(result.message);
+            else onChosen();
           }}
         >
-          {saving ? 'SAVING…' : 'THIS IS ME'}
+          {saving ? 'SAVING…' : 'CHOOSE AVATAR'}
         </button>
+        {error && <div className="cq-error">{error}</div>}
       </div>
     </div>
   );
@@ -269,7 +331,7 @@ function CampusMap({
 }) {
   const { profile } = usePlayer();
   const avatar = avatarById(profile?.selected_avatar);
-  const walkSprite = `${avatar.walkBase}/down.png`;
+  const walkSprite = avatar.sprites.down;
 
   const stateFor = (index: number): 'locked' | 'available' | 'complete' => {
     const n = index + 1;
@@ -341,7 +403,7 @@ function CampusMap({
         );
       })}
 
-      <div className="player" style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
+      <div className={`player ${avatar.id === 'npc9' || avatar.id === 'npc10' ? 'player-wide' : ''}`} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
         <img src={walkSprite} />
       </div>
       <div className="tip">WASD / arrow keys to explore · reach a glowing mission marker</div>

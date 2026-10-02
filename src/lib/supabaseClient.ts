@@ -21,5 +21,5 @@ if (!supabaseConfigured) {
 export const supabase = createClient(
   url && url.length > 0 ? url : 'https://placeholder.supabase.co',
   anonKey && anonKey.length > 0 ? anonKey : 'placeholder-anon-key',
-  { auth: { persistSession: false } }
+  { auth: { persistSession: false, autoRefreshToken: true } }
 );

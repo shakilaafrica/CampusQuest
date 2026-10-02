@@ -1,32 +1,49 @@
-// Reuses existing art only — no new assets generated.
-//
-// Portraits (used in the picker, Student Card and HUD) come from the
-// previously-unused avatar-N sprites bundled with Society Fair.
-// Overworld walk-cycles reuse the three existing directional NPC sprite
-// sheets (public/assets/npcs/npc6, npc7, npc8). Only three full
-// walk-cycles exist in the project, so avatar 4's overworld sprite reuses
-// npc8's walk-cycle while keeping its own distinct portrait — flagged here
-// rather than silently duplicated.
-import avatar1 from '../levels/society-fair/assets/sprites/avatar-1.png';
-import avatar2 from '../levels/society-fair/assets/sprites/avatar-2.png';
-import avatar3 from '../levels/society-fair/assets/sprites/avatar-3.png';
-import avatar4 from '../levels/society-fair/assets/sprites/avatar-4.png';
+import npc6Up from '../levels/society-fair/assets/npc6/up.png';
+import npc6Down from '../levels/society-fair/assets/npc6/down.png';
+import npc6Left from '../levels/society-fair/assets/npc6/left.png';
+import npc6Right from '../levels/society-fair/assets/npc6/right.png';
+import npc7Up from '../levels/society-fair/assets/npc7/up.png';
+import npc7Down from '../levels/society-fair/assets/npc7/down.png';
+import npc7Left from '../levels/society-fair/assets/npc7/left.png';
+import npc7Right from '../levels/society-fair/assets/npc7/right.png';
+import npc8Up from '../levels/society-fair/assets/npc8/up.png';
+import npc8Down from '../levels/society-fair/assets/npc8/down.png';
+import npc8Left from '../levels/society-fair/assets/npc8/left.png';
+import npc8Right from '../levels/society-fair/assets/npc8/right.png';
+import npc9Up from '../levels/society-fair/assets/npc9/up.png';
+import npc9Down from '../levels/society-fair/assets/npc9/down.png';
+import npc9Left from '../levels/society-fair/assets/npc9/left.png';
+import npc9Right from '../levels/society-fair/assets/npc9/right.png';
+import npc10Up from '../levels/society-fair/assets/npc10/up.png';
+import npc10Down from '../levels/society-fair/assets/npc10/down.png';
+import npc10Left from '../levels/society-fair/assets/npc10/left.png';
+import npc10Right from '../levels/society-fair/assets/npc10/right.png';
+
+export type AvatarDirection = 'up' | 'down' | 'left' | 'right';
+type AvatarSprites = Record<AvatarDirection, string>;
 
 export interface AvatarOption {
   id: string;
   label: string;
   portrait: string;
-  /** Directional walk-cycle used on the overworld campus map. */
-  walkBase: string; // e.g. '/assets/npcs/npc6'
+  sprites: AvatarSprites;
 }
 
 export const AVATAR_OPTIONS: AvatarOption[] = [
-  { id: 'player-1', label: 'Player 1', portrait: avatar1, walkBase: '/assets/npcs/npc6' },
-  { id: 'player-2', label: 'Player 2', portrait: avatar2, walkBase: '/assets/npcs/npc7' },
-  { id: 'player-3', label: 'Player 3', portrait: avatar3, walkBase: '/assets/npcs/npc8' },
-  { id: 'player-4', label: 'Player 4', portrait: avatar4, walkBase: '/assets/npcs/npc8' },
+  { id: 'npc6', label: 'Avatar 1', portrait: npc6Down, sprites: { up: npc6Up, down: npc6Down, left: npc6Left, right: npc6Right } },
+  { id: 'npc7', label: 'Avatar 2', portrait: npc7Down, sprites: { up: npc7Up, down: npc7Down, left: npc7Left, right: npc7Right } },
+  { id: 'npc8', label: 'Avatar 3', portrait: npc8Down, sprites: { up: npc8Up, down: npc8Down, left: npc8Left, right: npc8Right } },
+  { id: 'npc9', label: 'Avatar 4', portrait: npc9Down, sprites: { up: npc9Up, down: npc9Down, left: npc9Left, right: npc9Right } },
+  { id: 'npc10', label: 'Avatar 5', portrait: npc10Down, sprites: { up: npc10Up, down: npc10Down, left: npc10Left, right: npc10Right } },
 ];
 
 export function avatarById(id: string | null | undefined): AvatarOption {
-  return AVATAR_OPTIONS.find((a) => a.id === id) ?? AVATAR_OPTIONS[0];
+  const legacyAvatarIds: Record<string, string> = {
+    'player-1': 'npc6',
+    'player-2': 'npc7',
+    'player-3': 'npc8',
+    'player-4': 'npc9',
+  };
+  const resolvedId = id ? legacyAvatarIds[id] ?? id : undefined;
+  return AVATAR_OPTIONS.find((avatar) => avatar.id === resolvedId) ?? AVATAR_OPTIONS[0];
 }

@@ -38,13 +38,8 @@ export default function AstronomyGame({ onComplete }: { onComplete: () => void }
   };
 
   return (
-    <>
-      <div className="phoneTop">ASTRONOMY LINK</div>
-      <h3>Constellation Connect</h3>
-      <p>
-        {constellation.name} · {constellation.difficulty} · click the stars in order
-      </p>
-
+    <div className="phoneGame astronomy-game">
+      <p className="phoneFact">Tap the stars in order to connect the constellation.</p>
       <div className={`starGame ${finished ? 'is-complete' : ''}`}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none">
           {/* faint dotted guide of the whole shape */}
@@ -89,20 +84,11 @@ export default function AstronomyGame({ onComplete }: { onComplete: () => void }
         ))}
       </div>
 
-      {showFact ? (
-        <>
-          <p className="phoneFact">
-            <b>{constellation.name} complete!</b> {constellation.fact}
-          </p>
-          <button className="phoneAction" onClick={nextConstellation}>
-            {level + 1 >= CONSTELLATIONS.length ? 'FINISH CHALLENGE' : 'CONTINUE'}
-          </button>
-        </>
-      ) : (
-        <p className="phoneHint">
-          {progress}/{constellation.stars.length} stars connected
-        </p>
+      {showFact && (
+        <button className="phoneAction" onClick={nextConstellation}>
+          {level + 1 >= CONSTELLATIONS.length ? 'FINISH' : 'CONTINUE'}
+        </button>
       )}
-    </>
+    </div>
   );
 }

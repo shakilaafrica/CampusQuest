@@ -53,7 +53,6 @@ export default function StatsGame({ onComplete }: { onComplete: () => void }) {
       if (chosen.id === poison) {
         setMessage('The Society Member ate the poison! You win!');
         setPhase('won');
-        window.setTimeout(onComplete, 650);
       } else {
         const after = Math.max(1, available.length - 1);
         setTurn('player');
@@ -62,6 +61,12 @@ export default function StatsGame({ onComplete }: { onComplete: () => void }) {
     }, NPC_DELAY);
     return () => window.clearTimeout(timer);
   }, [beans, onComplete, phase, poison, turn]);
+
+  useEffect(() => {
+    if (phase !== 'won') return;
+    const timeout = window.setTimeout(onComplete, 650);
+    return () => window.clearTimeout(timeout);
+  }, [onComplete, phase]);
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -75,7 +80,7 @@ export default function StatsGame({ onComplete }: { onComplete: () => void }) {
   }, [phase]);
 
   return (
-    <div className="poisonBeans">
+    <div className="phoneGame poisonBeans">
       <div className="phoneTop">GAME OF CHANCE</div>
       <p className="poisonBeans__subtitle">A statistics lesson disguised as a snack.</p>
 

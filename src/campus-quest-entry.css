@@ -1,0 +1,198 @@
+.screen.login.cq-entry-screen {
+  min-height: 100dvh;
+  padding: 18px;
+  overflow: auto;
+  background: radial-gradient(ellipse at 50% 0%, #43206c 0%, #20102f 62%, #140b20 100%);
+}
+
+.login-card.cq-login-card.cq-entry-card {
+  width: min(460px, 100%);
+  padding: 24px;
+  border: 1px solid #a76ee066;
+  border-radius: 14px;
+  background: #241433ed;
+  box-shadow: 0 16px 42px #0008;
+}
+
+.cq-entry-card .title {
+  color: #fff;
+  font-size: 30px;
+  letter-spacing: 0;
+}
+
+.cq-entry-card .sub {
+  margin: 4px 0 14px;
+  color: #d7b8ff;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.cq-entry-card .cq-login-panel {
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.cq-entry-card .cq-login-panel input {
+  min-width: 0;
+  letter-spacing: 0.04em;
+}
+
+.cq-entry-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cq-entry-actions .secondary {
+  grid-column: 1 / -1;
+}
+
+.cq-entry-card button {
+  min-height: 42px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 800;
+  transition: filter 0.16s ease, transform 0.16s ease;
+}
+
+.cq-entry-card button:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.cq-entry-card .primary {
+  border: 1px solid #d7b8ff55;
+  background: #8d4bd3 !important;
+  box-shadow: 0 5px 14px #6f35a644;
+}
+
+.cq-entry-card .secondary {
+  border: 1px solid #a76ee066;
+  background: #ffffff12;
+  color: #fff;
+}
+
+.cq-entry-card .cq-staff-link {
+  width: 100%;
+  min-height: 34px;
+  margin-top: 4px;
+  padding: 6px;
+  border: 0;
+  background: transparent;
+  color: #d7b8ff;
+  font-size: 11px;
+}
+
+.cq-entry-card .cq-error {
+  margin: 4px 0;
+}
+
+.cq-entry-screen .cq-avatar-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.cq-avatar-grid .avatar {
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  padding: 6px;
+  border: 1px solid #a76ee055;
+  border-radius: 12px;
+  background: #ffffff0b;
+}
+
+.cq-avatar-grid .avatar.sel {
+  border-color: #d7b8ff;
+  background: #8d4bd322;
+}
+
+.cq-avatar-grid .avatar img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.cq-avatar-grid .avatar img.is-wide {
+  width: 72%;
+  object-fit: cover;
+}
+
+.cq-avatar-grid .avatar:focus-visible,
+.cq-entry-card button:focus-visible {
+  outline: 2px solid #d7b8ff;
+  outline-offset: 2px;
+}
+
+.player.player-wide img {
+  object-fit: cover;
+}
+
+@media (min-width: 760px) and (max-height: 700px) {
+  .screen.login.cq-entry-screen {
+    padding: 8px;
+  }
+
+  .login-card.cq-login-card.cq-entry-card {
+    width: min(860px, 96vw);
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(180px, 0.8fr) minmax(350px, 1.2fr);
+    align-items: center;
+    gap: 0 20px;
+    padding: 16px;
+  }
+
+  .login-card.cq-login-card.cq-entry-card > .title,
+  .login-card.cq-login-card.cq-entry-card > .sub {
+    grid-column: 1;
+  }
+
+  .login-card.cq-login-card.cq-entry-card > .cq-login-panel {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .cq-entry-card .cq-login-panel {
+    gap: 4px;
+    padding: 10px;
+  }
+
+  .cq-entry-card .cq-login-panel input {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .cq-entry-card .cq-field-label {
+    font-size: 11px;
+  }
+
+  .cq-entry-card button {
+    min-height: 34px;
+    padding: 7px 12px;
+    font-size: 11px;
+  }
+
+  .cq-entry-card .cq-staff-link {
+    min-height: 26px;
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .screen.login.cq-entry-screen {
+    padding: 12px;
+  }
+
+  .login-card.cq-login-card.cq-entry-card {
+    padding: 18px;
+  }
+
+  .cq-avatar-grid {
+    gap: 5px;
+  }
+}

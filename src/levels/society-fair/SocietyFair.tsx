@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './style.css';
+import { usePlayer } from '../../context/PlayerContext';
+import { avatarById, AvatarDirection } from '../../lib/avatars';
 
 import plazaDay from './assets/plaza-day.png';
 
@@ -56,12 +58,16 @@ function face(a: Pt, b: Pt): Dir {
 
 function Sprite({
   kind = 'student',
+  avatarSprites,
+  avatarWide = false,
   dir,
   x,
   y,
   size = 92,
 }: {
   kind?: keyof typeof SPRITES;
+  avatarSprites?: Record<AvatarDirection, string>;
+  avatarWide?: boolean;
   dir: Dir;
   x: number;
   y: number;
@@ -69,7 +75,12 @@ function Sprite({
 }) {
   return (
     <div className="sprite" style={{ left: x, top: y, zIndex: Math.floor(y) }}>
-      <img src={SPRITES[kind][dir]} style={{ height: size }} alt="" />
+      <img
+        src={avatarSprites?.[dir] ?? SPRITES[kind][dir]}
+        className={avatarWide ? 'player-avatar-wide' : ''}
+        style={{ height: size }}
+        alt=""
+      />
     </div>
   );
 }
@@ -92,6 +103,8 @@ export default function SocietyFair({
   onComplete: () => void;
   onExit: () => void;
 }) {
+  const { profile } = usePlayer();
+  const playerAvatar = avatarById(profile?.selected_avatar);
   const [mission, setMission] = useState(
     'Explore the Society Fair, meet UCT societies, and discover where you belong.'
   );
@@ -365,11 +378,19 @@ export default function SocietyFair({
               dir={face(society.p, pos)}
               x={society.p.x}
               y={society.p.y}
-              size={70}
+              size={82}
             />
           ))}
 
-          <Sprite kind="player" dir={dir} x={pos.x} y={pos.y} size={102} />
+          <Sprite
+            kind="player"
+            avatarSprites={playerAvatar.sprites}
+            avatarWide={playerAvatar.id === 'npc9' || playerAvatar.id === 'npc10'}
+            dir={dir}
+            x={pos.x}
+            y={pos.y}
+            size={82}
+          />
         </div>
       </div>
 
@@ -389,7 +410,7 @@ export default function SocietyFair({
       <div className="missionBar">
         <b>MISSION</b>
         <span>{mission}</span>
-        <button onClick={onExit}>← MAP</button>
+        <button className="mapExit" onClick={onExit}>← MAP</button>
       </div>
 
       <SocietyPassport

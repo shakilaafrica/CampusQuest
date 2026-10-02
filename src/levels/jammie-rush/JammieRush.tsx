@@ -1,8 +1,10 @@
 import React from 'react';
 
 import './style.css';
+import './campus-theme.css';
+import { usePlayer } from '../../context/PlayerContext';
+import { avatarById } from '../../lib/avatars';
 import bg from './assets/jammie-rush-v2.jpg';
-import defaultPlayerSprite from './assets/player-student.png';
 import cyclistSprite from './assets/cyclist-uct.png';
 import carRed from './assets/car-red.png';
 import carYellow from './assets/car-yellow.png';
@@ -12,18 +14,6 @@ import npc09 from './assets/npc-09.png'; import npc10 from './assets/npc-10.png'
 import npc13 from './assets/npc-13.png'; import npc14 from './assets/npc-14.png'; import npc15 from './assets/npc-15.png'; import npc16 from './assets/npc-16.png';
 
 type Point={x:number;y:number};
-type PlayerSkinTone='light'|'medium-light'|'medium'|'medium-dark'|'dark';
-type PlayerAppearance={skinTone:PlayerSkinTone};
-const DEFAULT_PLAYER_APPEARANCE:PlayerAppearance={skinTone:'medium-dark'};
-// Only the current student artwork exists today. Add future skin-tone sprites here;
-// the rest of the game already reads appearance.skinTone rather than hard-coding an avatar.
-const PLAYER_SPRITES:Partial<Record<PlayerSkinTone,string>>={'medium-dark':defaultPlayerSprite};
-function loadPlayerAppearance():PlayerAppearance{
-  try{const raw=localStorage.getItem('campusQuest.playerAppearance');if(raw){const saved=JSON.parse(raw) as Partial<PlayerAppearance>;if(saved.skinTone)return {skinTone:saved.skinTone};}}catch{}
-  return DEFAULT_PLAYER_APPEARANCE;
-}
-function resolvePlayerSprite(appearance:PlayerAppearance){return PLAYER_SPRITES[appearance.skinTone]??defaultPlayerSprite;}
-
 type HazardKind='student'|'group'|'phone'|'runner'|'cyclist'|'car';
 type Hazard=Point&{id:number;kind:HazardKind;dir:1|-1;speed:number;lane:number;variant:number;phase:number;carType?:0|1};
 const WORLD={w:1365,h:768}; const TILE=38; const START={x:682,y:722}; const ZOOM=1.58;
@@ -65,9 +55,9 @@ function collides(p:Point,h:Hazard){
  return Math.abs(px-h.x)<18 && Math.abs(py-h.y)<14;
 }
 export default function JammieRush({onComplete,onExit}:{onComplete:()=>void;onExit:()=>void}){
- const [appearance]=React.useState<PlayerAppearance>(()=>loadPlayerAppearance());
- const activePlayerSprite=resolvePlayerSprite(appearance);
- React.useEffect(()=>{localStorage.setItem('campusQuest.playerAppearance',JSON.stringify(appearance))},[appearance]);
+ const {profile}=usePlayer();
+ const playerAvatar=avatarById(profile?.selected_avatar);
+ const activePlayerSprite=playerAvatar.sprites.down;
  const [player,setPlayer]=React.useState<Point>(START),playerRef=React.useRef(START); const [hazards,setHazards]=React.useState(makeHazards),hazardsRef=React.useRef(hazards);
  const [state,setState]=React.useState<'intro'|'play'|'hit'|'win'|'lose'>('intro'); const [time,setTime]=React.useState(55),[strikes,setStrikes]=React.useState(0),[flash,setFlash]=React.useState('');
  const [hopping,setHopping]=React.useState(false),moving=React.useRef(false); const [camera,setCamera]=React.useState({x:0,y:0}),camRef=React.useRef({x:0,y:0}); const last=React.useRef(performance.now()),raf=React.useRef(0);
@@ -79,12 +69,105 @@ export default function JammieRush({onComplete,onExit}:{onComplete:()=>void;onEx
  React.useEffect(()=>{if(state!=='play')return;const t=setInterval(()=>setTime(v=>{if(v<=1){setState('lose');return 0}return v-1}),1000);return()=>clearInterval(t)},[state]);
  React.useEffect(()=>{let id=0;const follow=()=>{const vw=window.innerWidth/ZOOM,vh=window.innerHeight/ZOOM;const targetX=clamp(player.x-vw*.5,0,Math.max(0,WORLD.w-vw));const targetY=clamp(player.y-vh*.57,0,Math.max(0,WORLD.h-vh));const c=camRef.current;const n={x:c.x+(targetX-c.x)*.10,y:c.y+(targetY-c.y)*.10};camRef.current=n;setCamera(n);id=requestAnimationFrame(follow)};id=requestAnimationFrame(follow);return()=>cancelAnimationFrame(id)},[player]);
  const progress=Math.max(0,Math.min(100,(START.y-player.y)/(START.y-260)*100));
- return <main><div className="game"><div className="world" style={{width:WORLD.w,height:WORLD.h,backgroundImage:`url(${bg})`,transform:`translate(${-camera.x*ZOOM}px,${-camera.y*ZOOM}px) scale(${ZOOM})`}}>
- {hazards.map(o=>o.kind==='car'?<div key={o.id} className="hazard carHaz" style={{left:o.x,top:o.y}}><Car type={o.carType??0} dir={o.dir}/></div>:o.kind==='cyclist'?<div key={o.id} className="hazard cycleHaz" style={{left:o.x,top:o.y}}><Bicycle variant={o.variant} dir={o.dir}/></div>:o.kind==='group'?<div key={o.id} className="hazard groupHaz" style={{left:o.x,top:o.y}}><Student variant={o.variant} dir={o.dir}/><Student variant={o.variant+2} dir={o.dir}/><Student variant={o.variant+4} dir={o.dir}/></div>:<div key={o.id} className="hazard studentHaz" style={{left:o.x,top:o.y}}><Student variant={o.variant} dir={o.dir}/></div>)}
- <div className={`playerSprite ${hopping?'hop':''}`} style={{left:player.x,top:player.y}}><img src={activePlayerSprite}/><i className="playerShadow"/><span>YOU</span></div></div>
- <header className="hud"><div className="brand"><b>🚌 JAMMIE RUSH</b><small>J2 • HIDDINGH CAMPUS</small></div><div className="progress"><span>BOARDING PROGRESS</span><div><i style={{width:`${progress}%`}}/></div></div><div className={`timer ${time<10?'danger':''}`}>{time}s</div></header>
- <div className="mission"><strong>GET TO THE JAMMIE</strong><span>Hop tile-by-tile • watch the gaps • don't bump into anyone</span><em>COLLISIONS: {strikes}</em></div>
- {flash&&<div className="flash">{flash}</div>}
- {state!=='play'&&state!=='hit'&&<div className="overlay"><div className="card">{state==='intro'&&<><h1>🚌 JAMMIE RUSH</h1><h2>J2 to Hiddingh is boarding.</h2><p>Cross the busy campus one tile at a time. Students, cyclists and traffic keep moving while you decide your next hop.</p><div className="rules"><span>⬆️ One key press<br/><b>One tile hop</b></span><span>💥 Any collision<br/><b>Back to start</b></span><span>🎥 Full-screen camera<br/><b>World scrolls</b></span></div><button onClick={reset}>START BOARDING</button></>}{state==='win'&&<><h1>🚌 MADE IT!</h1><h2>You caught J2 to Hiddingh.</h2><p><b>{strikes}</b> collisions • <b>{time}s</b> left</p><button onClick={onComplete}>MISSION COMPLETE</button><button onClick={reset}>PLAY AGAIN</button></>}{state==='lose'&&<><h1>🚪 DOORS CLOSED</h1><p>The Jammie left while you were still crossing campus.</p><button onClick={reset}>TRY NEXT JAMMIE</button></>}</div></div>}
- <footer><span><kbd>WASD</kbd> / <kbd>↑↓←→</kbd> Hop</span><span>💥 Collision = restart position</span><span>🎥 Smooth follow camera</span><button onClick={onExit}>← MAP</button></footer></div></main>}
+ return (
+  <main>
+   <div className="game">
+    <div
+     className="world"
+     style={{
+      width: WORLD.w,
+      height: WORLD.h,
+      backgroundImage: `url(${bg})`,
+      transform: `translate(${-camera.x * ZOOM}px,${-camera.y * ZOOM}px) scale(${ZOOM})`,
+     }}
+    >
+     {hazards.map((hazard) =>
+      hazard.kind === 'car' ? (
+       <div key={hazard.id} className="hazard carHaz" style={{ left: hazard.x, top: hazard.y }}>
+        <Car type={hazard.carType ?? 0} dir={hazard.dir} />
+       </div>
+      ) : hazard.kind === 'cyclist' ? (
+       <div key={hazard.id} className="hazard cycleHaz" style={{ left: hazard.x, top: hazard.y }}>
+        <Bicycle variant={hazard.variant} dir={hazard.dir} />
+       </div>
+      ) : hazard.kind === 'group' ? (
+       <div key={hazard.id} className="hazard groupHaz" style={{ left: hazard.x, top: hazard.y }}>
+        <Student variant={hazard.variant} dir={hazard.dir} />
+        <Student variant={hazard.variant + 2} dir={hazard.dir} />
+        <Student variant={hazard.variant + 4} dir={hazard.dir} />
+       </div>
+      ) : (
+       <div key={hazard.id} className="hazard studentHaz" style={{ left: hazard.x, top: hazard.y }}>
+        <Student variant={hazard.variant} dir={hazard.dir} />
+       </div>
+      )
+     )}
+    <div className={`playerSprite ${hopping ? 'hop' : ''}`} style={{ left: player.x, top: player.y }}>
+     <img
+      className={playerAvatar.id === 'npc9' || playerAvatar.id === 'npc10' ? 'playerAvatarWide' : ''}
+      src={activePlayerSprite}
+      alt=""
+     />
+      <i className="playerShadow" />
+      <span>YOU</span>
+     </div>
+    </div>
+
+    <header className="hud">
+     <div className="brand">
+      <b>🚌 JAMMIE RUSH</b>
+      <small>HIDDINGH CAMPUS</small>
+     </div>
+     <div className="progress">
+      <span>BOARDING PROGRESS</span>
+      <div><i style={{ width: `${progress}%` }} /></div>
+     </div>
+     <div className={`timer ${time < 10 ? 'danger' : ''}`}>{time}s</div>
+    </header>
+
+    <div className="mission">
+     <strong>GET TO THE JAMMIE</strong>
+     <em>COLLISIONS: {strikes}</em>
+    </div>
+
+    {flash && <div className="flash">{flash}</div>}
+
+    {state !== 'play' && state !== 'hit' && (
+     <div className="overlay">
+      <div className="card">
+       {state === 'intro' && (
+        <>
+         <h1>JAMMIE RUSH</h1>
+         <p>You have a lecture at Hiddingh Campus. Make it to the Jammie on time!</p>
+         <button onClick={reset}>START BOARDING</button>
+        </>
+       )}
+       {state === 'win' && (
+        <>
+         <h1>MADE IT!</h1>
+         <h2>You made it to Hiddingh Campus.</h2>
+         <p><b>{strikes}</b> collisions · <b>{time}s</b> left</p>
+         <button onClick={onComplete}>MISSION COMPLETE</button>
+         <button onClick={reset}>PLAY AGAIN</button>
+        </>
+       )}
+       {state === 'lose' && (
+        <>
+         <h1>🚪 DOORS CLOSED</h1>
+         <p>The Jammie left while you were still crossing campus.</p>
+         <button onClick={reset}>TRY NEXT JAMMIE</button>
+        </>
+       )}
+      </div>
+     </div>
+    )}
+
+    <footer>
+     <span><kbd>WASD</kbd> / <kbd>↑↓←→</kbd> Hop</span>
+     <button className="mapExit" onClick={onExit}>← MAP</button>
+    </footer>
+   </div>
+  </main>
+ );
+}
 

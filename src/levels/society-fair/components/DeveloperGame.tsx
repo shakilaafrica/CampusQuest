@@ -1,14 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-const GAME_LENGTH_S = 60;
+const GAME_LENGTH_S = 30;
 // Physics are in px/second and px/second^2 (matched to the `y` value, which is
 // applied directly as a pixel offset via `bottom: 18 + state.y` in the JSX).
 // Previous values (GRAVITY 28, SPACE_JUMP_VELOCITY 7.4) mixed px/s units with
 // a velocity far too small for that gravity: jumpHeight = v^2 / (2*g) only
 // worked out to ~1px, so the jump was technically firing but invisible.
 const GRAVITY = 900; // px/s^2
-const SPACE_JUMP_VELOCITY = 275; // px/s -> jumpHeight = 275^2 / (2*900) ≈ 42px (~40% of MAX_JUMP_HEIGHT)
-const HIGH_JUMP_VELOCITY = 350; // px/s -> jumpHeight = 350^2 / (2*900) ≈ 68px (~65% of MAX_JUMP_HEIGHT)
+const SPACE_JUMP_VELOCITY = 390; // px/s -> jumpHeight = 390^2 / (2*900) ≈ 84px
 const MAX_JUMP_HEIGHT = 104; // safe ceiling for state.y, leaves headroom inside the runner frame
 const OBSTACLE_HEIGHT = 28;
 
@@ -21,6 +20,7 @@ export default function DeveloperGame({ onComplete }: { onComplete: () => void }
     phase: 'ready' as Phase,
     y: 0,
     vy: 0,
+    jumpQueued: false,
     score: 0,
     obstacleX: STARTING_OBSTACLE_X,
     timeLeft: GAME_LENGTH_S,
@@ -30,12 +30,13 @@ export default function DeveloperGame({ onComplete }: { onComplete: () => void }
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  const startGame = () => {
+  const startGame = (jumpOnStart = false) => {
     setState((prev) => ({
       ...prev,
       phase: 'running',
       y: 0,
-      vy: 0,
+      vy: jumpOnStart ? SPACE_JUMP_VELOCITY : 0,
+      jumpQueued: false,
       score: 0,
       obstacleX: STARTING_OBSTACLE_X,
       timeLeft: GAME_LENGTH_S,
@@ -43,37 +44,32 @@ export default function DeveloperGame({ onComplete }: { onComplete: () => void }
     }));
   };
 
-  const jump = (mode: 'normal' | 'high' = 'normal') => {
+  const jump = () => {
     const s = stateRef.current;
-    if (s.phase !== 'running' || s.y > 1) return;
+    if (s.phase !== 'running') return;
+    if (s.y > 1) {
+      setState((prev) => ({ ...prev, jumpQueued: true }));
+      return;
+    }
 
     setState((prev) => ({
       ...prev,
-      vy: mode === 'high' ? HIGH_JUMP_VELOCITY : SPACE_JUMP_VELOCITY,
+      vy: SPACE_JUMP_VELOCITY,
+      jumpQueued: false,
     }));
   };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') return;
+      if (e.code !== 'Space' && e.key !== ' ' && e.key !== 'Spacebar') return;
+      e.preventDefault();
 
-      const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar';
-      const isHigh = e.key.toLowerCase() === 'e';
-      if (isHigh || isSpace || e.key === 'ArrowUp') {
-        e.preventDefault();
-
-        if (stateRef.current.phase === 'ready' || stateRef.current.phase === 'lost' || stateRef.current.phase === 'won') {
-          startGame();
-          return;
-        }
-
-        jump(isHigh ? 'high' : 'normal');
+      if (stateRef.current.phase === 'ready') {
+        startGame(true);
+        return;
       }
 
-      if ((e.key.toLowerCase() === 'r' || e.key === 'Enter') && stateRef.current.phase !== 'running') {
-        e.preventDefault();
-        startGame();
-      }
+      jump();
     };
 
     addEventListener('keydown', onKey);
@@ -87,21 +83,27 @@ export default function DeveloperGame({ onComplete }: { onComplete: () => void }
     let last = performance.now();
 
     const loop = (now: number) => {
-      const dt = Math.min(0.033, (now - last) / 1000);
+      const elapsed = (now - last) / 1000;
+      const dt = Math.min(0.033, elapsed);
       last = now;
 
       setState((prev) => {
         if (prev.phase !== 'running') return prev;
 
-        const nextVY = prev.vy - GRAVITY * dt;
+        let nextVY = prev.vy - GRAVITY * dt;
+        let nextQueued = prev.jumpQueued;
         let nextY = prev.y + nextVY * dt;
-        let nextTimeLeft = Math.max(0, prev.timeLeft - dt);
+        let nextTimeLeft = Math.max(0, prev.timeLeft - elapsed);
         let nextObstacleX = prev.obstacleX - (34 + (1 - nextTimeLeft / GAME_LENGTH_S) * 16) * dt;
 
         // Clamp to the ground and to the safe ceiling so the character can
         // never dip below the ground or punch through the top of the runner frame.
         if (nextY <= 0 && nextVY <= 0) {
           nextY = 0;
+          if (nextQueued) {
+            nextVY = SPACE_JUMP_VELOCITY;
+            nextQueued = false;
+          }
         }
         nextY = Math.min(nextY, MAX_JUMP_HEIGHT);
 
@@ -115,7 +117,9 @@ export default function DeveloperGame({ onComplete }: { onComplete: () => void }
         const hit =
           nextObstacleX > 15 &&
           nextObstacleX < 28 &&
-          nextY < OBSTACLE_HEIGHT + 2;
+          nextY < OBSTACLE_HEIGHT + 2 &&
+          nextVY <= 0 &&
+          !prev.jumpQueued;
 
         if (hit) {
           return {
@@ -148,6 +152,7 @@ export default function DeveloperGame({ onComplete }: { onComplete: () => void }
           ...prev,
           y: nextY,
           vy: nextVY,
+          jumpQueued: nextQueued,
           obstacleX: nextObstacleX,
           score: nextScore,
           timeLeft: nextTimeLeft,
@@ -174,7 +179,7 @@ export default function DeveloperGame({ onComplete }: { onComplete: () => void }
   const displayHi = Math.floor(state.hiScore).toString().padStart(4, '0');
 
   return (
-    <div className="developer-game">
+    <div className="phoneGame developer-game">
       <div className="developer-game__hud">
         <div className="developer-game__stat">
           <span>SCORE</span>
@@ -195,13 +200,6 @@ export default function DeveloperGame({ onComplete }: { onComplete: () => void }
       </div>
 
       <div className="runner" aria-live="polite">
-        {state.phase === 'ready' && (
-          <div className="runner__screen runner__screen--ready">
-            <h1>DEVELOPER DASH</h1>
-            <p>PRESS SPACE TO START</p>
-          </div>
-        )}
-
         {state.phase !== 'ready' && (
           <>
             <div className="runner__bot" style={{ bottom: 18 + state.y }}>
@@ -229,10 +227,10 @@ export default function DeveloperGame({ onComplete }: { onComplete: () => void }
         )}
       </div>
 
-      <div className="runner__controls">[SPACE] JUMP [E] HIGH JUMP [ESC] QUIT</div>
+      <div className="runner__controls">[SPACE] JUMP</div>
 
       {state.phase !== 'running' && state.phase !== 'ready' && (
-        <button className="phoneAction" onClick={startGame}>
+        <button className="phoneAction" onClick={() => startGame()}>
           {state.phase === 'won' ? 'PLAY AGAIN' : 'RETRY'}
         </button>
       )}

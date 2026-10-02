@@ -1,14 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase, supabaseConfigured } from '../lib/supabaseClient';
-
-// DEMO ONLY.
-// Replace this client-side access key with proper authenticated
-// lecturer/admin authorization before production deployment. The "1234"
-// check below gates the UI only — the data it unlocks is already safe to
-// expose because get_campus_quest_stats() (see supabase/schema.sql) is a
-// SECURITY DEFINER function that returns aggregate counts only, never raw
-// student rows.
-const DEMO_ACCESS_KEY = '1234';
+import { usePlayer } from '../context/PlayerContext';
 const REFRESH_INTERVAL_MS = 30_000;
 
 interface Stats {
@@ -25,50 +17,26 @@ interface Stats {
   mission_4_completions: number;
 }
 
-export default function StatsForNerds({ onClose }: { onClose: () => void }) {
-  const [unlocked, setUnlocked] = useState(false);
-  const [key, setKey] = useState('');
-  const [keyError, setKeyError] = useState<string | null>(null);
+export default function StatsForNerds({ onLogout }: { onLogout: () => void }) {
+  const { profile } = usePlayer();
+  const authorized = profile?.role === 'lecturer' || profile?.role === 'tutor';
 
-  if (!unlocked) {
+  if (!authorized) {
     return (
       <div className="modal">
-        <div className="brief cq-stats-gate">
-          <div className="kicker">STATS FOR NERDS</div>
-          <h1>Lecturer / Demo Access</h1>
-          <label className="cq-field-label">Access Key</label>
-          <input
-            type="password"
-            value={key}
-            onChange={(e) => { setKey(e.target.value); setKeyError(null); }}
-            placeholder="••••"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                if (key === DEMO_ACCESS_KEY) setUnlocked(true);
-                else setKeyError('Incorrect access key.');
-              }
-            }}
-          />
-          {keyError && <div className="cq-error">{keyError}</div>}
-          <button
-            className="primary"
-            onClick={() => {
-              if (key === DEMO_ACCESS_KEY) setUnlocked(true);
-              else setKeyError('Incorrect access key.');
-            }}
-          >
-            VIEW STATS
-          </button>
-          <button className="secondary" onClick={onClose}>CANCEL</button>
+        <div className="brief" role="alert">
+          <h1>Access denied</h1>
+          <p>Staff authorisation is required to view Campus Quest statistics.</p>
+          <button className="secondary" onClick={onLogout}>LOG OUT</button>
         </div>
       </div>
     );
   }
 
-  return <Dashboard onClose={onClose} />;
+  return <Dashboard onLogout={onLogout} />;
 }
 
-function Dashboard({ onClose }: { onClose: () => void }) {
+function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -159,7 +127,7 @@ function Dashboard({ onClose }: { onClose: () => void }) {
           </>
         )}
 
-        <button className="secondary" onClick={onClose}>CLOSE</button>
+        <button className="secondary" onClick={onLogout}>LOG OUT</button>
       </div>
     </div>
   );

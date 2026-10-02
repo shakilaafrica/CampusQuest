@@ -84,7 +84,7 @@ export const SOCIETIES: SocietyDef[] = [
     code: 'DEV',
     p: { x: 1285, y: 760 },
     npcKind: 'student',
-    orientation: 'landscape',
+    orientation: 'portrait',
     greeting:
       "Welcome to DevSoc! We build software, websites, apps and games. Join us and you could learn to build cool projects just like this one. We've made you a tiny retro game — beat it and we'll give you our PeopleSoft code!",
     activityPrompt: 'Open phone to play Retro Runner',
