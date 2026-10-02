@@ -1,15 +1,7 @@
--- =========================================================
--- CAMPUS QUEST — Supabase schema
--- Run this in the Supabase SQL editor, or:
---   supabase db push  (if you use the Supabase CLI)
--- =========================================================
 
 create extension if not exists "pgcrypto";
 
--- =========================================================
--- PROFILES
--- One row per Campus Quest account, linked to trusted Supabase Auth identity.
--- =========================================================
+
 create table if not exists public.profiles (
   id               uuid primary key default gen_random_uuid(),
   auth_user_id     uuid unique references auth.users(id) on delete cascade,
@@ -56,13 +48,24 @@ on conflict (email) do update set role = excluded.role;
 alter table public.staff_registration_allowlist enable row level security;
 revoke all on public.staff_registration_allowlist from anon, authenticated, public;
 
--- =========================================================
--- MISSION PROGRESS
--- One row per (student, mission). completed_at is null until
--- the mission is finished. Unique constraint on (user_id,
--- mission_number) is what makes completeMission() idempotent —
--- a second "complete" call is an UPDATE, never a new row.
--- =========================================================
+
+
+create or replace function public.campus_quest_staff_email_allowed(requested_email text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.staff_registration_allowlist
+    where email = lower(trim(requested_email))
+  );
+$$;
+
+revoke all on function public.campus_quest_staff_email_allowed(text) from public, anon, authenticated;
+grant execute on function public.campus_quest_staff_email_allowed(text) to anon, authenticated;
+
 create table if not exists public.mission_progress (
   id              uuid primary key default gen_random_uuid(),
   user_id         uuid not null references public.profiles(id) on delete cascade,
@@ -76,13 +79,7 @@ create table if not exists public.mission_progress (
 create index if not exists mission_progress_user_idx on public.mission_progress (user_id);
 create index if not exists mission_progress_completed_idx on public.mission_progress (mission_number, completed);
 
--- =========================================================
--- GAME SESSIONS
--- One row per "play session" (login -> logout / abandoned).
--- last_activity_at is refreshed roughly every 30s by the
--- client while the app is open; it's the source of truth for
--- "is this student online right now".
--- =========================================================
+
 create table if not exists public.game_sessions (
   id                 uuid primary key default gen_random_uuid(),
   user_id            uuid not null references public.profiles(id) on delete cascade,
@@ -94,9 +91,7 @@ create table if not exists public.game_sessions (
 create index if not exists game_sessions_user_idx on public.game_sessions (user_id);
 create index if not exists game_sessions_activity_idx on public.game_sessions (last_activity_at);
 
--- =========================================================
--- AUTH PROFILE PROVISIONING
--- =========================================================
+
 create or replace function public.create_campus_quest_student_profile()
 returns trigger
 language plpgsql
@@ -152,9 +147,6 @@ create trigger on_campus_quest_auth_user_created
 after insert on auth.users
 for each row execute function public.create_campus_quest_student_profile();
 
--- =========================================================
--- ROW LEVEL SECURITY
--- =========================================================
 
 alter table public.profiles enable row level security;
 alter table public.mission_progress enable row level security;
@@ -342,13 +334,3 @@ $$;
 revoke all on function public.get_campus_quest_stats() from public, anon;
 grant execute on function public.get_campus_quest_stats() to authenticated;
 
--- =========================================================
--- Peak concurrent players — intentionally NOT implemented.
--- The current session model (start/heartbeat/end) can tell you who is
--- active *right now*, but reconstructing historical concurrency correctly
--- requires either a time-bucketed sampling job or interval-overlap
--- analysis over every session, which this schema doesn't collect. Per the
--- brief: better to leave this stat out than show a number that's fabricated
--- or wrong. Add a scheduled sampling job (e.g. pg_cron writing to a
--- `presence_samples` table every minute) if you want this stat later.
--- =========================================================

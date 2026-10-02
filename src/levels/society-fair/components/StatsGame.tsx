@@ -1,3 +1,10 @@
+/**
+ * GenAI DECLARATION: The game logic in this file was generated with the
+ * assistance of GenAI (ChatGPT). The AI-generated logic was reviewed,
+ * integrated, and tested by the team.
+ */
+
+
 import React, { useEffect, useMemo, useState } from 'react';
 
 type Phase = 'intro' | 'playing' | 'won' | 'lost';

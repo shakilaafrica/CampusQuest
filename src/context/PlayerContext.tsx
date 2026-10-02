@@ -1,3 +1,23 @@
+/**
+ * GenAI DECLARATION
+ * ---------------------------------------------------------------------
+ * Tool: [ChatGPT (OpenAI)]
+ * Extent:  Approximately 99% of this file was rewritten by
+ *          GenAI. The original structure was created by the team, but
+ *          the code went through repeated rounds of error fixing and
+ *          debugging with the AI, and the AI's corrected versions
+ *          replaced most of the original code. This includes the
+ *          authentication and account functions (newGame, loadGame,
+ *          staffLogin, staffRegister, startFreshGame), profile
+ *          hydration, session heartbeat handling and mission progress.
+ * Human work: The team described the required behaviour, supplied the
+ *          error messages, pasted the AI's fixes into the project,
+ *          connected the file to the Supabase schema and the rest of
+ *          the app, and tested the result. 
+ * ---------------------------------------------------------------------
+ **/
+
+
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { supabase, supabaseConfigured } from '../lib/supabaseClient';
 import { isValidStudentNumber, normalizeStudentNumber } from '../lib/studentNumber';
@@ -46,6 +66,7 @@ interface PlayerContextValue {
   staffRegister: (email: string, password: string) => Promise<AuthResult>;
   staffLogin: (email: string, password: string) => Promise<AuthResult>;
   chooseAvatar: (avatarId: string) => Promise<AuthResult>;
+  startFreshGame: () => Promise<AuthResult>;
   completeMission: (missionNumber: number) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -94,8 +115,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           .eq('id', sessionIdRef.current);
       }, HEARTBEAT_INTERVAL_MS);
     } catch (err) {
-      // A session-tracking hiccup shouldn't block play — just log it.
-      // eslint-disable-next-line no-console
+    
       console.error('[Campus Quest] Failed to start game session', err);
     }
   }, [stopHeartbeat]);
@@ -108,7 +128,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     try {
       await supabase.from('game_sessions').update({ ended_at: new Date().toISOString() }).eq('id', id);
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error('[Campus Quest] Failed to close game session', err);
     }
   }, [stopHeartbeat]);
@@ -188,22 +207,46 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       return { ok: false, message: 'Enter a valid student number: 6 letters followed by 3 numbers.' };
     }
     if (!supabaseConfigured) return authNotReady();
+    if (password.length < 8) return { ok: false, message: 'Use a password with at least 8 characters.' };
 
     const studentNumber = normalizeStudentNumber(rawStudentNumber);
     const email = studentAuthEmail(studentNumber);
-
     const { data: accountExists, error: lookupError } = await supabase.rpc(
       'campus_quest_student_number_exists',
       { requested_student_number: studentNumber }
     );
     if (lookupError) {
+      console.error('[Campus Quest] Could not check student number:', lookupError);
       return { ok: false, message: 'Could not start a new game. Please try again later.' };
     }
-    if (accountExists) {
-      return { ok: false, message: 'A game already exists for this student number. Choose Load Game.' };
-    }
 
-    if (password.length < 8) return { ok: false, message: 'Use a password with at least 8 characters.' };
+    if (accountExists) {
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+      if (loginError || !loginData.user) {
+        return { ok: false, message: 'Incorrect student number or password.' };
+      }
+      try {
+        const existingProfile = await hydrateProfile(loginData.user.id, false);
+        if (!existingProfile || existingProfile.auth_user_id !== loginData.user.id || existingProfile.student_number !== studentNumber || existingProfile.role !== 'student') {
+          await supabase.auth.signOut();
+          return { ok: false, message: 'Could not find the student profile for this account.' };
+        }
+        const { error: resetError } = await supabase.rpc('start_new_campus_quest_game');
+        if (resetError) {
+          console.error('[Campus Quest] Failed to reset existing game:', resetError);
+          await supabase.auth.signOut();
+          return { ok: false, message: 'Could not start a fresh game. Please try again.' };
+        }
+        setProfile({ ...existingProfile, selected_avatar: null });
+        setProgress(emptyProgress());
+        setStatus('ready');
+        return { ok: true, kind: 'new' };
+      } catch (err) {
+        console.error('[Campus Quest] Failed to start fresh game:', err);
+        await supabase.auth.signOut();
+        return { ok: false, message: 'Could not start a fresh game. Please try again.' };
+      }
+    }
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -211,25 +254,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       options: { data: { student_number: studentNumber } },
     });
     if (error) {
-      const detail = error.message.toLowerCase();
       console.error('[Campus Quest] Student signup failed:', error);
-      if (detail.includes('already') || detail.includes('duplicate')) {
-        return { ok: false, message: 'A game already exists for this student number. Choose Load Game.' };
-      }
-      return { ok: false, message: 'Could not create a new game. Please check your details and try again.' };
+      return { ok: false, message: 'Could not create your account. Please try again.' };
     }
     if (!data.session || !data.user) {
-      return { ok: false, message: 'Could not start a new game. Please try again later.' };
+      return { ok: false, message: 'Could not start your account. Make sure email confirmation is disabled in Supabase.' };
     }
-
     try {
       const createdProfile = await hydrateProfile(data.user.id, false);
-      if (
-        !createdProfile
-        || createdProfile.auth_user_id !== data.user.id
-        || createdProfile.student_number !== studentNumber
-        || createdProfile.role !== 'student'
-      ) {
+      if (!createdProfile || createdProfile.auth_user_id !== data.user.id || createdProfile.student_number !== studentNumber || createdProfile.role !== 'student') {
         await supabase.auth.signOut();
         return { ok: false, message: 'Could not initialize this player profile.' };
       }
@@ -237,10 +270,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setStatus('ready');
       return { ok: true, kind: 'new' };
     } catch (err) {
+      console.error('[Campus Quest] Failed to initialize player:', err);
       await supabase.auth.signOut();
-      return { ok: false, message: err instanceof Error ? err.message : 'Could not initialize this player profile.' };
+      return { ok: false, message: 'Could not initialize this player profile.' };
     }
-  }, [hydrateProfile, startSession]);
+  }, [hydrateProfile]);
 
   const loadGame = useCallback(async (rawStudentNumber: string, password: string): Promise<AuthResult> => {
     if (!isValidStudentNumber(rawStudentNumber)) {
@@ -301,21 +335,44 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }
     if (password.length < 8) return { ok: false, message: 'Use a password with at least 8 characters.' };
 
+    const { data: allowed, error: allowlistError } = await supabase.rpc(
+      'campus_quest_staff_email_allowed',
+      { requested_email: normalizedEmail }
+    );
+    if (allowlistError) {
+      console.error('[Campus Quest] Staff allow-list check failed:', allowlistError);
+      return { ok: false, message: 'Could not verify staff access. Please try again.' };
+    }
+    if (!allowed) {
+      return { ok: false, message: "Sorry, you're not in the authorised lecturer/tutor list." };
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
       options: { data: { account_type: 'staff' } },
     });
     if (error || !data.user) {
-      return {
-        ok: false,
-        message: 'Registration failed. Only emails pre-approved as lecturer or tutor by an administrator can register.',
-      };
+      if (error) console.error('[Campus Quest] Staff signup failed:', error);
+      return { ok: false, message: 'This staff email may already have an account. Try Staff Sign In.' };
     }
-
     if (data.session) await supabase.auth.signOut();
     return { ok: true, kind: 'staff' };
   }, []);
+
+  const startFreshGame = useCallback(async (): Promise<AuthResult> => {
+    if (!profile || profile.role !== 'student') {
+      return { ok: false, message: 'Sign in as a student to start a fresh game.' };
+    }
+    const { error } = await supabase.rpc('start_new_campus_quest_game');
+    if (error) {
+      console.error('[Campus Quest] Failed to start a fresh game:', error);
+      return { ok: false, message: 'Could not reset this game. Please try again later.' };
+    }
+    setProfile((current) => current ? { ...current, selected_avatar: null } : current);
+    setProgress(emptyProgress());
+    return { ok: true, kind: 'new' };
+  }, [profile]);
 
   const chooseAvatar = useCallback(
     async (avatarId: string): Promise<AuthResult> => {
@@ -345,10 +402,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     async (missionNumber: number) => {
       if (!profile || profile.role !== 'student') return;
       const existing = progress[missionNumber];
-      if (existing?.completed) return; // idempotent: already complete, nothing to do
+      if (existing?.completed) return; 
 
       const nowIso = new Date().toISOString();
-      // Optimistic local update first so the UI never stalls on the network.
       setProgress((prev) => ({
         ...prev,
         [missionNumber]: {
@@ -369,7 +425,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         { onConflict: 'user_id,mission_number' }
       );
       if (error) {
-        // eslint-disable-next-line no-console
         console.error('[Campus Quest] Failed to persist mission completion', error);
       }
     },
@@ -395,6 +450,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     staffRegister,
     staffLogin,
     chooseAvatar,
+    startFreshGame,
     completeMission,
     logout,
   };

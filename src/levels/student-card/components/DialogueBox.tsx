@@ -5,7 +5,7 @@ import './DialogueBox.css';
 export interface DialogueLine {
   speaker: string;
   text: string;
-  portrait?: string; // emoji stand-in for a portrait sprite
+  portrait?: string; 
 }
 
 interface Props {
@@ -34,7 +34,7 @@ export function DialogueBox({ lines, onComplete }: Props) {
 
   const advance = () => {
     if (displayed.length < line.text.length) {
-      setDisplayed(line.text); // let a press skip the typewriter first
+      setDisplayed(line.text); 
       return;
     }
     if (index < lines.length - 1) {

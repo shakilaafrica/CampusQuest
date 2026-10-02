@@ -1,14 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 const GAME_LENGTH_S = 30;
-// Physics are in px/second and px/second^2 (matched to the `y` value, which is
-// applied directly as a pixel offset via `bottom: 18 + state.y` in the JSX).
-// Previous values (GRAVITY 28, SPACE_JUMP_VELOCITY 7.4) mixed px/s units with
-// a velocity far too small for that gravity: jumpHeight = v^2 / (2*g) only
-// worked out to ~1px, so the jump was technically firing but invisible.
-const GRAVITY = 900; // px/s^2
-const SPACE_JUMP_VELOCITY = 390; // px/s -> jumpHeight = 390^2 / (2*900) ≈ 84px
-const MAX_JUMP_HEIGHT = 104; // safe ceiling for state.y, leaves headroom inside the runner frame
+
+const GRAVITY = 900; 
+const SPACE_JUMP_VELOCITY = 390; 
+const MAX_JUMP_HEIGHT = 104; 
 const OBSTACLE_HEIGHT = 28;
 
 const STARTING_OBSTACLE_X = 100;
@@ -96,8 +92,7 @@ export default function DeveloperGame({ onComplete }: { onComplete: () => void }
         let nextTimeLeft = Math.max(0, prev.timeLeft - elapsed);
         let nextObstacleX = prev.obstacleX - (34 + (1 - nextTimeLeft / GAME_LENGTH_S) * 16) * dt;
 
-        // Clamp to the ground and to the safe ceiling so the character can
-        // never dip below the ground or punch through the top of the runner frame.
+       
         if (nextY <= 0 && nextVY <= 0) {
           nextY = 0;
           if (nextQueued) {

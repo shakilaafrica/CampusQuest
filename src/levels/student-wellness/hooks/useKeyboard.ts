@@ -1,10 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-/**
- * Tracks the set of currently-held keys in a ref (no re-renders on every
- * key event) so a requestAnimationFrame loop can poll continuous input —
- * WASD/arrow movement, or "hold space to rise" in the photobooth minigame.
- */
+
 export function useKeysRef() {
   const keysRef = useRef<Set<string>>(new Set());
 
@@ -26,10 +22,7 @@ export function useKeysRef() {
   return keysRef;
 }
 
-/**
- * Fires a callback once per discrete key press (ignores OS key-repeat),
- * e.g. "E" to interact/advance dialogue.
- */
+
 export function useKeyPress(targetKey: string, onPress: () => void, enabled = true) {
   useEffect(() => {
     if (!enabled) return;
@@ -42,6 +35,5 @@ export function useKeyPress(targetKey: string, onPress: () => void, enabled = tr
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetKey, enabled, onPress]);
 }
