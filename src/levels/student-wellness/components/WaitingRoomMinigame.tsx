@@ -83,6 +83,7 @@ export function WaitingRoomMinigame({
       const name = callTarget ? target : pickFillerName(lastNameRef.current);
       lastNameRef.current = name;
       currentNameRef.current = name;
+      setCurrentName(name);
       resolvedRef.current = false; 
       setPhase('calling');
 
