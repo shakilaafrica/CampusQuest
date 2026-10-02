@@ -1,11 +1,12 @@
 New User Login: 
-- Student Number 
-- Password
+- AKAMKA002 
+- ValidPassword7%
 
+#use only once new user account is created
 Existing User Login:
-- Student Number 
-- Password
+- AKAMKA002
+- ValidPassword7%
 
 Stats Management:
-- Privileged user email
-- Registered password
+- mcktar010@myuct.ac.za
+- mcktar010
