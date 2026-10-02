@@ -7,6 +7,8 @@ import {
 import { DialogueBox, type DialogueLine } from '../components/DialogueBox';
 import { PhotoBoothMinigame } from '../components/PhotoBoothMinigame';
 import type { InventoryItem, PhotoResult, StudentCardScene } from '../types/game';
+import { usePlayer } from '../../../context/PlayerContext';
+import { avatarById } from '../../../lib/avatars';
 
 import introBg from '../assets/intro-scene.jfif';
 import accessControlBg from '../assets/access-control-entrance.jfif';
@@ -14,18 +16,7 @@ import receptionBg from '../assets/card-services-reception.jfif';
 
 import './OperationStudentCard.css';
 
-// -----------------------------------------------------------------------------
-// Per-scene layout — spawn positions, movement bounds, environment zones, and
-// NPCs. All coordinates are percentages of the scene's width and height so
-// zones stay aligned with their visual targets when the viewport is resized.
-// -----------------------------------------------------------------------------
 
-// --- Access Control entrance -------------------------------------------------
-// The Access Control Services building fills most of the frame. The main
-// glass doors sit slightly left of centre; the "Access Control Services"
-// sign is immediately to the right of the doors. Player spawns on the
-// right-hand side of the paved foreground so they have to walk over to the
-// doors and press E — they never spawn inside the door zone.
 const ACCESS_CONTROL_SPAWN = { x: 82, y: 87 };
 const ACCESS_CONTROL_BOUNDS = { minX: 8, maxX: 94, minY: 62, maxY: 94 };
 const ACCESS_CONTROL_DOOR_ZONE: InteractionZone = {
@@ -36,13 +27,6 @@ const ACCESS_CONTROL_DOOR_ZONE: InteractionZone = {
   label: 'Press E to enter Access Control',
 };
 
-// --- Card Services reception -------------------------------------------------
-// The reception counter spans the upper-middle of the frame with the
-// receptionist seated behind its centre section. The photobooth (backdrop,
-// stool, tripod camera) sits in the upper-left corner. Waiting chairs are
-// along the lower-left; the entrance doors are at lower-centre. Movement is
-// clamped to the visible floor so the player can't walk through the counter
-// or off the sides of the room.
 const RECEPTION_INITIAL_SPAWN = { x: 50, y: 82 };
 const RECEPTION_RETRY_SPAWN = { x: 30, y: 55 };
 const RECEPTION_BOUNDS = { minX: 10, maxX: 90, minY: 42, maxY: 88 };
@@ -63,9 +47,7 @@ const PHOTOBOOTH_CHAIR_ZONE: InteractionZone = {
   label: 'Press E to take your student card photo',
 };
 
-// -----------------------------------------------------------------------------
-// Dialogue lines
-// -----------------------------------------------------------------------------
+
 const PLAYER_INTRO_LINES: DialogueLine[] = [
   {
     speaker: 'You',
@@ -108,26 +90,15 @@ const RECEPTIONIST_FAILURE_LINES: DialogueLine[] = [
   },
 ];
 
-// -----------------------------------------------------------------------------
-// NPCs
-// -----------------------------------------------------------------------------
+
 const RECEPTIONIST_NPC: SceneNpc = {
   id: RECEPTIONIST_ZONE.id,
-  // The receptionist is already drawn into the reception background art at
-  // approximately this location, so we do NOT render a separate emoji sprite
-  // on top of her (that would double her up). Instead we anchor the
-  // interaction zone here through the plain `zones` list and skip the NPC
-  // sprite entirely. Kept as documentation only — see `receptionZones`
-  // below for the actual zone wiring.
   x: RECEPTIONIST_ZONE.x,
   y: RECEPTIONIST_ZONE.y - 4,
   emoji: '🧑\u200d💼',
 };
-void RECEPTIONIST_NPC; // referenced for docs; sprite intentionally not rendered
+void RECEPTIONIST_NPC; 
 
-// -----------------------------------------------------------------------------
-// UI helpers
-// -----------------------------------------------------------------------------
 function objectiveFor(scene: StudentCardScene, dialogueOpen: boolean): string {
   if (dialogueOpen) return 'Press E to continue the dialogue';
   switch (scene) {
@@ -145,47 +116,32 @@ function objectiveFor(scene: StudentCardScene, dialogueOpen: boolean): string {
       return 'Mission complete';
   }
 }
-
-// -----------------------------------------------------------------------------
-// Props
-// -----------------------------------------------------------------------------
 interface Props {
-  /** Called once the mission is fully completed (after success dialogue). */
   onMissionComplete: (item: InventoryItem) => void;
-  /** Called when the player leaves the completed mission. */
   onExitToMap: () => void;
 }
 
-/**
- * A pending modal dialogue overlaying the current scene. While `dialogue` is
- * non-null, the underlying scene is passed `interactionEnabled={false}` so
- * movement and stray E-presses are frozen and can't leak through to it.
- */
+
 interface PendingDialogue {
-  /** Unique per open, used as the DialogueBox key so a fresh sequence always starts at line 1. */
   id: number;
   lines: DialogueLine[];
   onDone: () => void;
 }
 
-// -----------------------------------------------------------------------------
-// Mission
-// -----------------------------------------------------------------------------
+
 export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) {
+  const { profile } = usePlayer();
+  const playerSprites = avatarById(profile?.selected_avatar).sprites;
   const [scene, setScene] = useState<StudentCardScene>('introCard');
   const [photoResult, setPhotoResult] = useState<PhotoResult>('none');
   const [attempts, setAttempts] = useState(0);
   const [dialogue, setDialogue] = useState<PendingDialogue | null>(null);
-
-  // Memoised layout arrays so BackgroundScene's RAF loop sees stable
-  // references (its dependency array includes `allZones`).
   const accessControlZones = useMemo(() => [ACCESS_CONTROL_DOOR_ZONE], []);
   const receptionZones = useMemo(
     () => [RECEPTIONIST_ZONE, PHOTOBOOTH_CHAIR_ZONE],
     [],
   );
 
-  // --- Dialogue helper ------------------------------------------------------
   const dialogueIdRef = useRef(0);
   const openDialogue = useCallback((lines: DialogueLine[], onDone: () => void) => {
     dialogueIdRef.current += 1;
@@ -193,11 +149,9 @@ export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) 
   }, []);
   const closeDialogue = useCallback(() => setDialogue(null), []);
 
-  // --- Intro scene: auto-play the player's monologue on mount ---------------
   useEffect(() => {
     if (scene !== 'intro') return;
-    // A short beat lets the background image settle before the dialogue box
-    // slides up over it, matching the pacing of other levels' cutscenes.
+   
     const t = window.setTimeout(() => {
       openDialogue(PLAYER_INTRO_LINES, () => {
         closeDialogue();
@@ -207,18 +161,12 @@ export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) 
     return () => window.clearTimeout(t);
   }, [scene, openDialogue, closeDialogue]);
 
-  // --- Reception scene: auto-play the appropriate follow-up on re-entry ----
-  // First visit (photoResult === 'none') needs no auto-dialogue — the player
-  // walks up to the receptionist and presses E themself. On return from the
-  // minigame, the mission requirement is that the receptionist speak
-  // immediately, so we auto-open success/failure dialogue on mount.
   useEffect(() => {
     if (scene !== 'cardServicesReception') return;
     if (photoResult === 'success') {
       openDialogue(RECEPTIONIST_SUCCESS_LINES, () => {
         closeDialogue();
-        // Mission is only marked complete AFTER the success dialogue closes,
-        // so the completion overlay never appears mid-sentence.
+    
         onMissionComplete({
           id: 'uct-student-card',
           name: 'UCT Student Card',
@@ -231,18 +179,13 @@ export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) 
     } else if (photoResult === 'failure') {
       openDialogue(RECEPTIONIST_FAILURE_LINES, () => {
         closeDialogue();
-        // Reset the result so a subsequent press of E on the receptionist
-        // (before retrying) shows her initial line rather than the failure
-        // line again, and so the next minigame outcome dispatches cleanly.
+
         setPhotoResult('none');
       });
     }
-    // Deliberately depends on scene + photoResult so switching scenes with
-    // the same result value re-triggers the correct dialogue.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [scene, photoResult]);
 
-  // --- Interaction routers --------------------------------------------------
   const handleAccessControlInteract = useCallback((id: string) => {
     if (id === ACCESS_CONTROL_DOOR_ZONE.id) {
       setScene('cardServicesReception');
@@ -252,11 +195,6 @@ export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) 
   const handleReceptionInteract = useCallback(
     (id: string) => {
       if (id === RECEPTIONIST_ZONE.id) {
-        // Pressing E on the receptionist always shows her initial "go to the
-        // photobooth" line. This is intentional even on a repeat visit: if
-        // the player wanders back to her, she just re-directs them. Success/
-        // failure lines are only ever surfaced by the auto-dialogue effect
-        // above, driven by photoResult — never from this handler.
         openDialogue(RECEPTIONIST_INTRO_LINES, closeDialogue);
       } else if (id === PHOTOBOOTH_CHAIR_ZONE.id) {
         setScene('photoMinigame');
@@ -265,9 +203,7 @@ export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) 
     [openDialogue, closeDialogue],
   );
 
-  // --- Minigame outcomes ----------------------------------------------------
-  // The minigame component itself is untouched — we only bind our own
-  // onWin/onLose to translate its result into a scene change + photoResult.
+
   const handleMinigameWin = useCallback(() => {
     setPhotoResult('success');
     setScene('cardServicesReception');
@@ -278,11 +214,7 @@ export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) 
     setScene('cardServicesReception');
   }, []);
 
-  // The reception scene needs a per-visit spawn point:
-  //  - first visit / after success dialogue: near the lower-centre entrance
-  //  - after a failed attempt: nearer the photobooth so the retry is short
-  // The BackgroundScene remounts (via keying) when the spawn changes, which
-  // resets its internal position and any stale "nearby" prompt.
+
   const receptionSpawn =
     photoResult === 'failure' ? RECEPTION_RETRY_SPAWN : RECEPTION_INITIAL_SPAWN;
   const receptionKey = `reception-${photoResult}`;
@@ -293,10 +225,9 @@ export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) 
     <div className="op-card">
       <header className="op-card__hud">
         <div className="op-card__title">
-          <span className="op-card__eyebrow">Mission 1 of 4</span>
+          <span className="op-card__eyebrow">MISSION 4 — OPERATION STUDENT CARD</span>
           Operation: Student Card
         </div>
-        <div className="op-card__objective">{objectiveFor(scene, dialogueOpen)}</div>
       </header>
 
       <div className="op-card__stage">
@@ -305,6 +236,7 @@ export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) 
         {scene === 'intro' && (
           <BackgroundScene
             backgroundSrc={introBg}
+            playerSprites={playerSprites}
             spawn={{ x: 50, y: 88 }}
             bounds={{ minX: 45, maxX: 55, minY: 85, maxY: 90 }}
             interactionEnabled={false}
@@ -315,6 +247,7 @@ export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) 
         {scene === 'accessControlEntrance' && (
           <BackgroundScene
             backgroundSrc={accessControlBg}
+            playerSprites={playerSprites}
             spawn={ACCESS_CONTROL_SPAWN}
             bounds={ACCESS_CONTROL_BOUNDS}
             zones={accessControlZones}
@@ -327,6 +260,7 @@ export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) 
           <BackgroundScene
             key={receptionKey}
             backgroundSrc={receptionBg}
+            playerSprites={playerSprites}
             spawn={receptionSpawn}
             bounds={RECEPTION_BOUNDS}
             zones={receptionZones}
@@ -336,9 +270,7 @@ export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) 
         )}
 
         {scene === 'photoMinigame' && (
-          // The existing photobooth minigame — mechanics, controls, scoring
-          // and win/lose rules are all preserved. We only listen for its
-          // callbacks and translate them into scene + photoResult changes.
+
           <PhotoBoothMinigame onWin={handleMinigameWin} onLose={handleMinigameLose} />
         )}
 
@@ -349,19 +281,21 @@ export function OperationStudentCard({ onMissionComplete, onExitToMap }: Props) 
         {dialogue && (
           <DialogueBox key={dialogue.id} lines={dialogue.lines} onComplete={dialogue.onDone} />
         )}
+
+        {!dialogueOpen && scene !== 'introCard' && scene !== 'complete' && (
+          <div className="op-card__objective">{objectiveFor(scene, dialogueOpen)}</div>
+        )}
       </div>
     </div>
   );
 }
 
-// -----------------------------------------------------------------------------
-// Sub-components
-// -----------------------------------------------------------------------------
+
 function IntroCard({ onStart }: { onStart: () => void }) {
   return (
     <div className="op-card__overlay">
       <div className="op-card__panel">
-        <div className="op-card__panel-eyebrow">Mission 1 of 4</div>
+        <div className="op-card__panel-eyebrow">MISSION 4 — OPERATION STUDENT CARD</div>
         <h2>Operation: Student Card</h2>
         <p>
           You've misplaced your student card and can't get into any of the

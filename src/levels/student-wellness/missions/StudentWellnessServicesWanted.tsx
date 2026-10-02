@@ -1,3 +1,11 @@
+/**
+ * GenAI DECLARATION: GenAI (ChatGPT) was used to assist in rewriting and
+ * integrating portions of this code, particularly the mission flow, scene
+ * transitions, interaction handling, and dialogue logic. The AI-assisted
+ * code was reviewed, integrated, and tested by the team.
+ */
+
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BackgroundScene, type InteractionZone, type SceneNpc } from '../scenes/BackgroundScene';
 import { DialogueBox, type DialogueLine } from '../components/DialogueBox';
@@ -10,51 +18,25 @@ import buildingBg from '../assets/ivan-toms-building.jfif';
 import receptionBg from '../assets/ivan-toms-reception.jfif';
 import minigameBg from '../assets/student-wellness-minigame-background.jfif';
 
-import playerUp from '../assets/player-up.png';
-import playerDown from '../assets/player-down.png';
-import playerLeft from '../assets/player-left.png';
-import playerRight from '../assets/player-right.png';
-
 import kirahSprite from '../assets/kirah.png';
 
+import { usePlayer } from '../../../context/PlayerContext';
+import { avatarById } from '../../../lib/avatars';
 import './StudentWellnessServicesWanted.css';
 
-// -----------------------------------------------------------------------------
-// Scene state machine
-// -----------------------------------------------------------------------------
+
 type Scene =
-  | 'intro'       // mission card overlay
-  | 'steveBiko'   // find Kirah at Steve Biko — mandatory Kirah dialogue transitions to gate
-  | 'gate'        // Ivan Toms gate — access-control zone + optional Kirah chat
-  | 'cardSwipe'   // card swipe minigame overlay
-  | 'building'    // Ivan Toms building exterior — stairs zone + optional Kirah chat
-  | 'reception'   // Ivan Toms reception — desk zone + optional Kirah chat
-  | 'minigame'    // Waiting room minigame
-  | 'success'     // Post-minigame success scene with player + Kirah + thank-you dialogue
-  | 'complete';   // Completion card
+  | 'intro'       
+  | 'steveBiko'  
+  | 'gate'       
+  | 'cardSwipe'   
+  | 'building'  
+  | 'reception'   
+  | 'minigame'    
+  | 'success'     
+  | 'complete';   
 
-// -----------------------------------------------------------------------------
-// Player sprites (kept inside student-wellness/assets for self-containment).
-// -----------------------------------------------------------------------------
-const PLAYER_SPRITES = {
-  up: playerUp,
-  down: playerDown,
-  left: playerLeft,
-  right: playerRight,
-};
 
-// -----------------------------------------------------------------------------
-// Per-scene layout — spawn positions, movement bounds, environment zones, and
-// Kirah's position/zone. All coordinates are percentages of the scene.
-//
-// General principle for Kirah's placement: right-hand side of every scene,
-// clear of the environment interaction zones so the two prompts never fire
-// at the same time.
-// -----------------------------------------------------------------------------
-
-// --- Steve Biko intro scene --------------------------------------------------
-// Player enters from the left, Kirah is standing to the right of centre in
-// front of the clinic. She IS the interaction target here.
 const STEVE_BIKO_SPAWN = { x: 18, y: 90 };
 const STEVE_BIKO_BOUNDS = { minX: 6, maxX: 94, minY: 66, maxY: 94 };
 const STEVE_BIKO_KIRAH: SceneNpc = {
@@ -67,7 +49,6 @@ const STEVE_BIKO_KIRAH: SceneNpc = {
   interactionRadius: 13,
 };
 
-// --- Gate --------------------------------------------------------------------
 const GATE_SPAWN = { x: 60, y: 88 };
 const GATE_BOUNDS = { minX: 6, maxX: 94, minY: 55, maxY: 94 };
 const GATE_ZONE: InteractionZone = {
@@ -87,7 +68,6 @@ const GATE_KIRAH: SceneNpc = {
   interactionRadius: 11,
 };
 
-// --- Building exterior -------------------------------------------------------
 const BUILDING_SPAWN = { x: 62, y: 92 };
 const BUILDING_BOUNDS = { minX: 6, maxX: 94, minY: 55, maxY: 94 };
 const BUILDING_ZONE: InteractionZone = {
@@ -107,7 +87,6 @@ const BUILDING_KIRAH: SceneNpc = {
   interactionRadius: 11,
 };
 
-// --- Reception ---------------------------------------------------------------
 const RECEPTION_SPAWN = { x: 42, y: 88 };
 const RECEPTION_BOUNDS = { minX: 8, maxX: 92, minY: 55, maxY: 94 };
 const RECEPTION_ZONE: InteractionZone = {
@@ -127,8 +106,7 @@ const RECEPTION_KIRAH: SceneNpc = {
   interactionRadius: 11,
 };
 
-// --- Success scene -----------------------------------------------------------
-// Both characters standing centred-left, doctor no longer visible.
+
 const SUCCESS_SPAWN = { x: 36, y: 88 };
 const SUCCESS_BOUNDS = { minX: 20, maxX: 80, minY: 60, maxY: 94 };
 const SUCCESS_KIRAH: SceneNpc = {
@@ -139,9 +117,7 @@ const SUCCESS_KIRAH: SceneNpc = {
   heightPct: 30,
 };
 
-// -----------------------------------------------------------------------------
-// Dialogue lines
-// -----------------------------------------------------------------------------
+
 const KIRAH_INTRO_LINES: DialogueLine[] = [
   {
     speaker: 'Kirah',
@@ -216,9 +192,7 @@ const KIRAH_THANKS_LINES: DialogueLine[] = [
   },
 ];
 
-// -----------------------------------------------------------------------------
-// UI helpers
-// -----------------------------------------------------------------------------
+
 function objectiveFor(scene: Scene, dialogueOpen: boolean): string {
   if (dialogueOpen) return 'Press E to continue the dialogue';
   switch (scene) {
@@ -243,31 +217,25 @@ function objectiveFor(scene: Scene, dialogueOpen: boolean): string {
   }
 }
 
-// -----------------------------------------------------------------------------
-// Props
-// -----------------------------------------------------------------------------
 interface Props {
   onMissionComplete: () => void;
   onExitToMap: () => void;
 }
 
-/**
- * A pending modal dialogue that overlays the current scene. Movement and E-
- * press on the underlying scene are gated while this is set.
- */
+
 interface PendingDialogue {
-  /** Unique per open, used as the DialogueBox key so every dialogue starts at line 1. */
   id: number;
   lines: DialogueLine[];
   onDone: () => void;
 }
 
 export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }: Props) {
+  const { profile } = usePlayer();
+  const playerSprites = avatarById(profile?.selected_avatar).sprites;
   const [scene, setScene] = useState<Scene>('intro');
   const [dialogue, setDialogue] = useState<PendingDialogue | null>(null);
   const [failCount, setFailCount] = useState(0);
 
-  // Memoised layout arrays so BackgroundScene's RAF loop has stable references.
   const gateZones = useMemo(() => [GATE_ZONE], []);
   const gateNpcs = useMemo(() => [GATE_KIRAH], []);
   const buildingZones = useMemo(() => [BUILDING_ZONE], []);
@@ -285,7 +253,6 @@ export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }
 
   const closeDialogue = useCallback(() => setDialogue(null), []);
 
-  // --- Scene-specific interaction routers -----------------------------------
   const handleSteveBikoInteract = useCallback((id: string) => {
     if (id === 'kirah') {
       openDialogue(KIRAH_INTRO_LINES, () => {
@@ -324,22 +291,17 @@ export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }
 
   const handleCardSwipeSuccess = useCallback(() => setScene('building'), []);
 
-  // --- Minigame outcomes ----------------------------------------------------
   const handleMinigameWin = useCallback(() => setScene('success'), []);
 
   const handleFailWrongName = useCallback(() => {
-    // Wrong patient: leave the waiting room immediately. Switching scene
-    // unmounts the minigame, which clears all of its timers, so no further
-    // names can be called behind the receptionist's dialogue. The player then
-    // has to talk to the receptionist again to start a fresh attempt.
+
     setFailCount((c) => c + 1);
     setScene('reception');
     openDialogue(RECEPTIONIST_WRONG_NAME_LINES, closeDialogue);
   }, [openDialogue, closeDialogue]);
 
   const handleFailMissedTarget = useCallback(() => {
-    // Missed Kirah: the doctor's line plays over the (already resolved, idle)
-    // waiting room first. Only once it is dismissed do we return to reception.
+
     openDialogue(DOCTOR_MISSED_TARGET_LINES, () => {
       closeDialogue();
       setFailCount((c) => c + 1);
@@ -347,7 +309,6 @@ export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }
     });
   }, [openDialogue, closeDialogue]);
 
-  // --- Success scene: auto-trigger Kirah's thank-you after a short beat ----
   useEffect(() => {
     if (scene !== 'success') return;
     const t = window.setTimeout(() => {
@@ -362,12 +323,11 @@ export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }
 
   const dialogueOpen = dialogue !== null;
 
-  // --------------------------------------------------------------------------
   return (
     <div className="sws-mission">
       <header className="sws-mission__hud">
         <div className="sws-mission__title">
-          <span className="sws-mission__eyebrow">Mission 2 of 4</span>
+          <span className="sws-mission__eyebrow">MISSION 2 — STUDENT WELLNESS</span>
           Student Wellness Services Wanted
         </div>
         <div className="sws-mission__objective">{objectiveFor(scene, dialogueOpen)}</div>
@@ -379,7 +339,7 @@ export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }
         {scene === 'steveBiko' && (
           <BackgroundScene
             backgroundSrc={steveBikoBg}
-            playerSprites={PLAYER_SPRITES}
+            playerSprites={playerSprites}
             spawn={STEVE_BIKO_SPAWN}
             bounds={STEVE_BIKO_BOUNDS}
             npcs={steveBikoNpcs}
@@ -391,7 +351,7 @@ export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }
         {scene === 'gate' && (
           <BackgroundScene
             backgroundSrc={gateBg}
-            playerSprites={PLAYER_SPRITES}
+            playerSprites={playerSprites}
             spawn={GATE_SPAWN}
             bounds={GATE_BOUNDS}
             zones={gateZones}
@@ -408,7 +368,7 @@ export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }
                 are frozen because interactionEnabled is false. */}
             <BackgroundScene
               backgroundSrc={gateBg}
-              playerSprites={PLAYER_SPRITES}
+              playerSprites={playerSprites}
               spawn={{ x: GATE_ZONE.x + 4, y: GATE_ZONE.y + 8 }}
               bounds={GATE_BOUNDS}
               npcs={gateNpcs}
@@ -422,7 +382,7 @@ export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }
         {scene === 'building' && (
           <BackgroundScene
             backgroundSrc={buildingBg}
-            playerSprites={PLAYER_SPRITES}
+            playerSprites={playerSprites}
             spawn={BUILDING_SPAWN}
             bounds={BUILDING_BOUNDS}
             zones={buildingZones}
@@ -435,7 +395,7 @@ export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }
         {scene === 'reception' && (
           <BackgroundScene
             backgroundSrc={receptionBg}
-            playerSprites={PLAYER_SPRITES}
+            playerSprites={playerSprites}
             spawn={RECEPTION_SPAWN}
             bounds={RECEPTION_BOUNDS}
             zones={receptionZones}
@@ -458,13 +418,12 @@ export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }
         {scene === 'success' && (
           <BackgroundScene
             backgroundSrc={minigameBg}
-            playerSprites={PLAYER_SPRITES}
+            playerSprites={playerSprites}
             spawn={SUCCESS_SPAWN}
             bounds={SUCCESS_BOUNDS}
             npcs={successNpcs}
             interactionEnabled={false}
             onInteract={() => {}}
-            hidePlayer
           />
         )}
 
@@ -480,14 +439,12 @@ export function StudentWellnessServicesWanted({ onMissionComplete, onExitToMap }
   );
 }
 
-// -----------------------------------------------------------------------------
-// Sub-components
-// -----------------------------------------------------------------------------
+
 function IntroCard({ onStart }: { onStart: () => void }) {
   return (
     <div className="sws-mission__overlay">
       <div className="sws-mission__panel">
-        <div className="sws-mission__panel-eyebrow">Mission 2 of 4</div>
+        <div className="sws-mission__panel-eyebrow">MISSION 2 — STUDENT WELLNESS</div>
         <h2>Student Wellness Services Wanted</h2>
         <p>
           Kirah isn&rsquo;t well and the Steve Biko clinic is full. Find her outside

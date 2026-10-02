@@ -1,3 +1,23 @@
+/**
+ * GenAI DECLARATION
+ * ---------------------------------------------------------------------
+ * Tool: [ChatGPT (OpenAI)]
+ * Extent:  Approximately 99% of this file was rewritten by
+ *          GenAI. The original structure was created by the team, but
+ *          the code went through repeated rounds of error fixing and
+ *          debugging with the AI, and the AI's corrected versions
+ *          replaced most of the original code. 
+ * Human work: The team described the required behaviour, supplied the
+ *          error messages, pasted the AI's fixes into the project,
+ *          connected the file to the Supabase schema and the rest of
+ *          the app, and tested the result. 
+ * ---------------------------------------------------------------------
+ **/
+
+
+
+
+
 import React from 'react';
 
 import './style.css';
@@ -115,7 +135,7 @@ export default function JammieRush({onComplete,onExit}:{onComplete:()=>void;onEx
 
     <header className="hud">
      <div className="brand">
-      <b>🚌 JAMMIE RUSH</b>
+      <b>MISSION 1 — JAMMIE RUSH</b>
       <small>HIDDINGH CAMPUS</small>
      </div>
      <div className="progress">

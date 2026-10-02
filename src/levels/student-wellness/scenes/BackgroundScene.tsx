@@ -3,42 +3,24 @@ import { useKeyPress, useKeysRef } from '../hooks/useKeyboard';
 import { InteractionPrompt } from '../components/InteractionPrompt';
 import './BackgroundScene.css';
 
-/**
- * A single interaction zone anchored to a point on the illustrated background.
- * All coordinates are percentages of scene width / height so the zone stays
- * aligned with the visual target when the background is scaled.
- */
+
 export interface InteractionZone {
   id: string;
-  /** Zone centre, as % of scene width (0–100). */
   x: number;
-  /** Zone centre, as % of scene height (0–100). */
   y: number;
-  /** Interaction radius, as % (Euclidean distance in the same coordinate space). */
   radius: number;
-  /** Prompt label — e.g. "Press E to swipe your student card". */
   label: string;
 }
 
-/**
- * A stationary NPC drawn on top of the background. If `interactionLabel` is
- * given, the NPC's position also becomes an interaction zone under the same
- * `id`, so the mission only has to declare the character once.
- */
+
 export interface SceneNpc {
   id: string;
-  /** % of scene width — bottom-centre (the character's feet) sits here. */
   x: number;
-  /** % of scene height — bottom-centre sits here. */
   y: number;
   spriteUrl: string;
-  /** Sprite height as % of scene height. Defaults to the same as the player. */
   heightPct?: number;
-  /** If set, a "Press E to …" prompt appears when the player is within radius. */
   interactionLabel?: string;
-  /** Interaction radius (% of scene). Defaults to 12. */
   interactionRadius?: number;
-  /** Optional mirror. */
   flip?: boolean;
 }
 
@@ -51,32 +33,20 @@ export interface Bounds {
 
 interface Props {
   backgroundSrc: string;
-  /** URLs of the four-directional player sprites. */
   playerSprites: { up: string; down: string; left: string; right: string };
   spawn: { x: number; y: number };
   bounds?: Bounds;
-  /** Environment interaction zones (card readers, doors, desks, …). */
   zones?: InteractionZone[];
-  /** NPCs drawn on top of the background. May contribute their own zones. */
   npcs?: SceneNpc[];
-  /**
-   * When true, the player can move (WASD/arrows) and press E to interact.
-   * When false, both are frozen — used to pause the scene behind a modal
-   * dialogue or overlay so the character doesn't drift under it.
-   */
+  
   interactionEnabled: boolean;
   onInteract: (id: string) => void;
-  /** When true, the player sprite is not drawn (e.g. cutscene-style scenes). */
   hidePlayer?: boolean;
-  /** Extra elements rendered above the background, below the player (e.g. decorations). */
   children?: React.ReactNode;
 }
 
-// Player size is a percentage of scene height so it scales with the viewport.
 const PLAYER_HEIGHT_PCT = 18;
-// The move speed uses the same units as JammieRush's other scenes (percent of
-// scene per second). Vertical motion is boosted slightly because the scenes
-// are wider than they are tall.
+
 const SPEED = 34;
 const Y_BOOST = 1.3;
 const DEFAULT_INTERACT_RADIUS = 12;
@@ -106,8 +76,6 @@ export function BackgroundScene({
   const nearbyRef = useRef<string | null>(null);
   const [nearby, setNearby] = useState<string | null>(null);
 
-  // NPC-derived zones are merged with the explicit zones. Memoised so array
-  // identity is stable across renders (the RAF effect depends on it).
   const allZones: InteractionZone[] = useMemo(() => {
     const npcZones: InteractionZone[] = (npcs ?? [])
       .filter((n) => n.interactionLabel)
@@ -115,16 +83,14 @@ export function BackgroundScene({
         id: n.id,
         x: n.x,
         y: n.y,
-        // Interaction radius is set slightly below the NPC's midriff so the
-        // "Press E" prompt appears at head height rather than at their feet.
+
         radius: n.interactionRadius ?? DEFAULT_INTERACT_RADIUS,
         label: n.interactionLabel!,
       }));
     return [...(zones ?? []), ...npcZones];
   }, [zones, npcs]);
 
-  // Re-seat the player when the scene mounts. Each scene instance owns its own
-  // spawn coordinates, so a fresh mount always begins from that location.
+
   useEffect(() => {
     posRef.current = spawn;
     setPos(spawn);
@@ -132,7 +98,7 @@ export function BackgroundScene({
     setFacing('up');
     nearbyRef.current = null;
     setNearby(null);
-  }, [spawn.x, spawn.y]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [spawn.x, spawn.y]); 
 
   useEffect(() => {
     let raf = 0;
@@ -142,9 +108,6 @@ export function BackgroundScene({
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
 
-      // Movement is only sampled while the scene is active. When
-      // interactionEnabled is false (dialogue or minigame overlay is up), the
-      // player stays put and the RAF loop just skips input entirely.
       if (interactionEnabled) {
         const keys = keysRef.current;
         let dx = 0;
@@ -165,7 +128,6 @@ export function BackgroundScene({
           posRef.current = next;
           setPos(next);
 
-          // Face the dominant axis of the latest movement.
           const nextFacing: Facing =
             Math.abs(dx) > Math.abs(dy)
               ? dx > 0
@@ -181,9 +143,6 @@ export function BackgroundScene({
         }
       }
 
-      // Proximity detection — pick the CLOSEST zone within its own radius.
-      // Only one nearby zone is ever active, which means only one "Press E"
-      // prompt appears at a time even if two zones sit near each other.
       let closest: string | null = null;
       let closestDist = Infinity;
       for (const zone of allZones) {
@@ -193,8 +152,7 @@ export function BackgroundScene({
           closestDist = d;
         }
       }
-      // Freeze the prompt while the scene is disabled — don't switch which
-      // target it points at based on movement that isn't happening.
+
       if (interactionEnabled && closest !== nearbyRef.current) {
         nearbyRef.current = closest;
         setNearby(closest);
@@ -208,7 +166,6 @@ export function BackgroundScene({
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bounds.minX, bounds.maxX, bounds.minY, bounds.maxY, allZones, interactionEnabled]);
 
   useKeyPress(

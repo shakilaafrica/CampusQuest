@@ -1,3 +1,11 @@
+/**
+ * GenAI DECLARATION: This code was debugged with the assistance of GenAI
+ * (ChatGPT). GenAI was also used to assist with the development and refinement
+ * of the Sudoku game logic. The resulting code was reviewed, integrated, and
+ * tested by the team.
+ */
+
+
 import React, { useState } from 'react';
 import { SUDOKU_PUZZLE, SUDOKU_SOLUTION } from '../societyData';
 

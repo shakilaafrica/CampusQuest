@@ -1,3 +1,10 @@
+/**
+ * GenAI DECLARATION: The camera movement, positioning, and zoom logic in this
+ * file was generated with the assistance of GenAI (ChatGPT). The AI-generated
+ * camera logic was reviewed, integrated, and tested by the team.
+ */
+
+
 import React, { useEffect, useRef, useState } from 'react';
 import './style.css';
 import { usePlayer } from '../../context/PlayerContext';
@@ -5,19 +12,16 @@ import { avatarById, AvatarDirection } from '../../lib/avatars';
 
 import plazaDay from './assets/plaza-day.png';
 
-// Player - NPC 6
 import playerUp from './assets/npc6/up.png';
 import playerDown from './assets/npc6/down.png';
 import playerLeft from './assets/npc6/left.png';
 import playerRight from './assets/npc6/right.png';
 
-// Host - NPC 7
 import hostUp from './assets/npc7/up.png';
 import hostDown from './assets/npc7/down.png';
 import hostLeft from './assets/npc7/left.png';
 import hostRight from './assets/npc7/right.png';
 
-// Student - NPC 8
 import studentUp from './assets/npc8/up.png';
 import studentDown from './assets/npc8/down.png';
 import studentLeft from './assets/npc8/left.png';
@@ -25,7 +29,6 @@ import studentRight from './assets/npc8/right.png';
 
 import Phone, { PhoneMode } from './components/Phone';
 import SocietyPassport from './components/SocietyPassport';
-import Confetti from './components/Confetti';
 import {
   SOCIETIES,
   SOCIETY_BY_ID,
@@ -35,9 +38,7 @@ import {
   Pt,
 } from './societyData';
 
-/* =========================================================
-   TYPES & SPRITES
-   ========================================================= */
+
 
 type Dir = 'up' | 'down' | 'left' | 'right';
 
@@ -74,7 +75,10 @@ function Sprite({
   size?: number;
 }) {
   return (
-    <div className="sprite" style={{ left: x, top: y, zIndex: Math.floor(y) }}>
+    <div
+      className={`sprite ${avatarSprites ? 'sprite--player' : 'sprite--society-npc'}`}
+      style={{ left: x, top: y, zIndex: Math.floor(y) }}
+    >
       <img
         src={avatarSprites?.[dir] ?? SPRITES[kind][dir]}
         className={avatarWide ? 'player-avatar-wide' : ''}
@@ -92,9 +96,7 @@ const INITIAL_STAGES: Record<SocietyId, SocietyStage> = {
   developers: 'notVisited',
 };
 
-/* =========================================================
-   MAIN SOCIETY FAIR LEVEL
-   ========================================================= */
+
 
 export default function SocietyFair({
   onComplete,
@@ -128,7 +130,6 @@ export default function SocietyFair({
   const [phoneMode, setPhoneMode] = useState<PhoneMode | null>(null);
   const [passportOpen, setPassportOpen] = useState(false);
   const [joinedCode, setJoinedCode] = useState<string | null>(null);
-  const [showConfetti, setShowConfetti] = useState(false);
 
   const [win, setWin] = useState({ w: window.innerWidth, h: window.innerHeight });
 
@@ -147,9 +148,6 @@ export default function SocietyFair({
   const unlockedCount = SOCIETIES.filter((s) => stages[s.id] === 'codeUnlocked').length;
   const allUnlocked = unlockedCount === SOCIETIES.length;
 
-  /* =======================================================
-     WINDOW RESIZE
-     ======================================================= */
 
   useEffect(() => {
     const resize = () => setWin({ w: window.innerWidth, h: window.innerHeight });
@@ -157,9 +155,6 @@ export default function SocietyFair({
     return () => removeEventListener('resize', resize);
   }, []);
 
-  /* =======================================================
-     GREET / INTERACT
-     ======================================================= */
 
   function greetOrReminder(id: SocietyId) {
     const society = SOCIETY_BY_ID[id];
@@ -193,7 +188,6 @@ export default function SocietyFair({
       return;
     }
 
-    // gameCompleted / codeUnlocked
     setSpeechBubble({
       id,
       text: society.reminder,
@@ -227,9 +221,7 @@ export default function SocietyFair({
     say('Find a society representative, or explore all four to unlock PeopleSoft.');
   }
 
-  /* =======================================================
-     KEYBOARD — WORLD MOVEMENT + E/P
-     ======================================================= */
+  
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -300,10 +292,7 @@ export default function SocietyFair({
     return () => removeEventListener('keydown', key);
   }, [phoneMode, speechBubble, current, joinedCode, allUnlocked]);
 
-  /* =======================================================
-     PHONE CALLBACKS
-     ======================================================= */
-
+  
   function handleGameComplete() {
     const id = phoneMode as SocietyId;
     const society = SOCIETY_BY_ID[id];
@@ -311,8 +300,7 @@ export default function SocietyFair({
     setStages((s) => ({ ...s, [id]: 'gameCompleted' }));
     setPhoneMode(null);
 
-    // codeUnlocked follows gameCompleted immediately: the society hands over
-    // the code the moment the activity finishes.
+  
     setTimeout(() => {
       setStages((s) => ({ ...s, [id]: 'codeUnlocked' }));
 
@@ -333,14 +321,11 @@ export default function SocietyFair({
   function handleJoin(code: string) {
     setJoinedCode(code);
     setPhoneMode(null);
-    setShowConfetti(true);
     setMission('Mission complete — you found your people!');
+    onComplete();
   }
 
-  /* =======================================================
-     CAMERA
-     ======================================================= */
-
+  
   const minZoom = Math.max(win.w / SCENE.w, win.h / SCENE.h);
   const z = Math.max(minZoom, zoom);
 
@@ -375,10 +360,10 @@ export default function SocietyFair({
             <Sprite
               key={society.id}
               kind={society.npcKind}
-              dir={face(society.p, pos)}
-              x={society.p.x}
-              y={society.p.y}
-              size={82}
+              dir={face(society.npcP, pos)}
+              x={society.npcP.x}
+              y={society.npcP.y}
+              size={108}
             />
           ))}
 
@@ -398,7 +383,7 @@ export default function SocietyFair({
       <header>
         <div>
           <strong>CAMPUS QUEST</strong>
-          <span>MISSION 3 · FIND YOUR PEOPLE</span>
+          <span>MISSION 3 — SOCIETY FAIR</span>
         </div>
         <div>
           <b>{unlockedCount}/4 explored</b>
@@ -464,27 +449,6 @@ export default function SocietyFair({
         />
       )}
 
-      {/* CONFETTI */}
-      {showConfetti && <Confetti />}
-
-      {/* MISSION COMPLETE */}
-      {joinedCode && (
-        <div className="overlay">
-          <div className="modal">
-            <small>MISSION COMPLETE</small>
-            <h1>🏆 YOU FOUND YOUR PEOPLE!</h1>
-            <p>
-              You've explored some of UCT's student societies and learned how societies can
-              be joined through PeopleSoft.
-            </p>
-            <p className="phoneFact">
-              Orientation Tip: Societies are a great way to meet people who share your
-              interests and become part of campus life.
-            </p>
-            <button onClick={onComplete}>RETURN TO CAMPUS MAP</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

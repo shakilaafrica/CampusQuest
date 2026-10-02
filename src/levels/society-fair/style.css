@@ -1,10 +1,15 @@
+/**
+ * GenAI DECLARATION: GenAI (ChatGPT) was used to assist in maintaining
+ * consistent CSS styling and visual design throughout this file. GenAI also
+ * generated portions of the CSS code to help ensure consistency across the
+ * Society Fair interface and its mini-games. The AI-assisted code was
+ * reviewed, integrated, and tested by the team.
+ */
+
+
+
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-/* =========================================================
-   SOCIETY FAIR — SCOPED STYLES
-   Every rule is scoped under .society-fair so this CSS can
-   never leak into other Campus Quest levels.
-   ========================================================= */
 
 .society-fair {
   --sf-purple-deep: #1a1026;
@@ -62,6 +67,10 @@
   text-align: center;
 }
 
+.society-fair .sprite--society-npc {
+  transform: translate(-50%, -100%);
+}
+
 .society-fair .sprite img {
   display: block;
   max-width: none;
@@ -75,7 +84,6 @@
   object-position: center;
 }
 
-/* ---------- header / mission bar ---------- */
 
 .society-fair header {
   position: fixed;
@@ -129,7 +137,6 @@
   font-size: 13px;
 }
 
-/* ---------- prompt / toast ---------- */
 
 .society-fair .prompt,
 .society-fair .toast {
@@ -164,7 +171,6 @@
   font-weight: 800;
 }
 
-/* ---------- speech bubble ---------- */
 
 .society-fair .society-speech {
   position: fixed;
@@ -221,7 +227,6 @@
   }
 }
 
-/* ---------- buttons ---------- */
 
 .society-fair button {
   border: 0;
@@ -336,9 +341,7 @@
   color: var(--sf-accent-light);
 }
 
-/* ---------- overlay / modal ---------- */
 
-.society-fair .overlay,
 .society-fair .phoneOverlay {
   position: fixed;
   inset: 0;
@@ -350,28 +353,12 @@
   backdrop-filter: blur(4px);
 }
 
-.society-fair .modal {
-  background: var(--sf-purple);
-  border: 1px solid #ffffff30;
-  border-radius: 24px;
-  padding: 28px;
-  width: min(560px, 90vw);
-  text-align: center;
-  box-shadow: 0 24px 70px #000;
-}
-
-.society-fair .modal small {
-  letter-spacing: 0.15em;
-  color: var(--sf-accent-light);
-}
-
 .society-fair .phoneFact {
   font-size: 13px;
   opacity: 0.85;
   line-height: 1.4;
 }
 
-/* ---------- society phone shell ---------- */
 
 .society-fair .phone {
   position: relative;
@@ -507,7 +494,6 @@
   outline: 2px solid var(--sf-accent-light);
 }
 
-/* ---------- astronomy: constellation connect ---------- */
 
 .society-fair .starGame {
   flex: 1;
@@ -577,7 +563,6 @@
   75% { transform: translate(-42%, -50%); }
 }
 
-/* ---------- statistics: probability snakes & ladders ---------- */
 
 .society-fair .ladderBoard {
   display: grid;
@@ -677,7 +662,6 @@
   padding: 8px 10px;
 }
 
-/* ---------- math: pocket sudoku ---------- */
 
 .society-fair .sudokuGrid {
   display: grid;
@@ -730,7 +714,6 @@
   outline: 2px solid var(--sf-gold);
 }
 
-/* ---------- developers: retro runner ---------- */
 
 .society-fair .developer-game {
   display: flex;
@@ -955,37 +938,6 @@
   background: rgba(8, 12, 24, 0.18);
 }
 
-/* ---------- confetti ---------- */
-
-.society-fair .society-confetti {
-  position: fixed;
-  inset: 0;
-  z-index: 400;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.society-fair .society-confetti-bit {
-  position: absolute;
-  top: -20px;
-  border-radius: 2px;
-  animation-name: sf-confetti-fall;
-  animation-timing-function: ease-in;
-  animation-fill-mode: forwards;
-}
-
-@keyframes sf-confetti-fall {
-  0% {
-    transform: translateY(0) translateX(0) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(110vh) translateX(var(--drift, 0px)) rotate(540deg);
-    opacity: 0.9;
-  }
-}
-
-/* ---------- responsive ---------- */
 
 @media (max-width: 700px) {
   .society-fair header {
@@ -1001,7 +953,6 @@
   }
 }
 
-/* ---------- StatsGeeks: Poison Beans ---------- */
 .society-fair .poisonBeans { display:flex; flex-direction:column; gap:10px; height:100%; }
 .society-fair .poisonBeans__subtitle { color:#b9a8c8; font-size:10px!important; }
 .society-fair .poisonBeans__rules { text-align:left; background:#ffffff0d; border:1px solid #9d69cc55; border-radius:14px; padding:12px; font-size:10px; line-height:1.5; }
@@ -1021,7 +972,6 @@
 .society-fair .poisonBeans__message.is-lost { background:#450a0a99; border-color:#fb7185; }
 @keyframes pb-pulse { to { transform:scale(1.08); box-shadow:0 0 14px #ef4444; } }
 
-/* Keep every Society Fair action button in the same purple family. */
 .society-fair .phoneAction,
 .society-fair .answers button,
 .society-fair .numbers button {

@@ -1,8 +1,12 @@
-/* =========================================================
-   SOCIETY FAIR — SHARED DATA
-   Society Fair module owns all of this data. Nothing here is
-   imported by, or affects, any other level.
-   ========================================================= */
+/** shared data  */
+
+
+/**
+ * GenAI DECLARATION: GenAI (ChatGPT) was used to combine and organise the
+ * shared game data and logic in this file, helping to make the implementation
+ * consistent across the different Society Fair activities. The AI-assisted
+ * code was reviewed, integrated, and tested by the team.
+ */
 
 export type Pt = { x: number; y: number };
 
@@ -22,6 +26,7 @@ export type SocietyDef = {
   name: string;
   emoji: string;
   code: string;
+  npcP: Pt;
   p: Pt;
   npcKind: 'host' | 'student';
   orientation: PhoneOrientation;
@@ -37,6 +42,7 @@ export const SOCIETIES: SocietyDef[] = [
     name: 'Astronomy Society',
     emoji: '🌌',
     code: 'AST',
+    npcP: { x: 270, y: 743 },
     p: { x: 310, y: 700 },
     npcKind: 'student',
     orientation: 'portrait',
@@ -52,6 +58,7 @@ export const SOCIETIES: SocietyDef[] = [
     name: 'Statistics Society',
     emoji: '📊',
     code: 'STA',
+    npcP: { x: 455, y: 550 },
     p: { x: 500, y: 555 },
     npcKind: 'host',
     orientation: 'portrait',
@@ -67,6 +74,7 @@ export const SOCIETIES: SocietyDef[] = [
     name: 'Mathematics Society',
     emoji: '🧮',
     code: 'MAT',
+    npcP: { x: 1100, y: 550 },
     p: { x: 1175, y: 615 },
     npcKind: 'host',
     orientation: 'portrait',
@@ -82,6 +90,7 @@ export const SOCIETIES: SocietyDef[] = [
     name: 'Developers Society',
     emoji: '💻',
     code: 'DEV',
+    npcP: { x: 1335, y: 730 },
     p: { x: 1285, y: 760 },
     npcKind: 'student',
     orientation: 'portrait',
@@ -102,10 +111,7 @@ export const SOCIETY_BY_ID: Record<SocietyId, SocietyDef> = SOCIETIES.reduce(
   {} as Record<SocietyId, SocietyDef>
 );
 
-/* =========================================================
-   ASTRONOMY — CONSTELLATION CONNECT
-   Coordinates are percentages of the starfield box.
-   ========================================================= */
+
 
 export type Constellation = {
   name: string;
@@ -161,10 +167,7 @@ export const CONSTELLATIONS: Constellation[] = [
   },
 ];
 
-/* =========================================================
-   STATISTICS — PROBABILITY SNAKES & LADDERS
-   25-square board, numbered 1 (start) to 25 (finish).
-   ========================================================= */
+
 
 export type BoardSquare = { kind: 'ladder' | 'snake'; to: number } | { kind: 'quiz' } | null;
 
@@ -205,10 +208,6 @@ export const PROBABILITY_QUESTIONS: ProbQuestion[] = [
   },
 ];
 
-/* =========================================================
-   MATH — POCKET SUDOKU (4x4)
-   0 = empty cell to be filled in.
-   ========================================================= */
 
 export const SUDOKU_PUZZLE: number[][] = [
   [1, 0, 3, 0],
@@ -224,9 +223,7 @@ export const SUDOKU_SOLUTION: number[][] = [
   [4, 3, 2, 1],
 ];
 
-/* =========================================================
-   HELPERS
-   ========================================================= */
+
 
 export const dist = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y);
 
